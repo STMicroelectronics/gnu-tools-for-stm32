@@ -1,0 +1,37 @@
+What's new:
+-----------
+
+- Drop support for Vista and Server 2008.
+
+- Add code to handle setrlimit(RLIMIT_AS).
+
+- Add code to handle signal masks in /proc/<PID>/status.
+
+- Handle UDP_SEGMENT and UDP_GRO socket options.
+
+
+What changed:
+-------------
+
+- The CYGWIN=pipe_byte option is now set by default, so that pipes are
+  opened in byte mode rather than message mode.
+  Addresses: https://cygwin.com/pipermail/cygwin/2021-March/247987.html
+
+- The stdio input functions no longer try again to read after EOF.
+  This aligns Cygwin behavior to that of Linux.
+  Addresses: https://cygwin.com/pipermail/cygwin/2022-June/251672.html
+
+- Treat an empty path (empty element in PATH or PATH is absent) as
+  the current directory as Linux does.
+  Addresses: https://cygwin.com/pipermail/cygwin/2022-June/251730.html
+
+- The default values of FD_SETSIZE and NOFILE are now 1024 and 3200,
+  respectively.
+  Addresses: https://cygwin.com/pipermail/cygwin/2022-July/251839.html
+
+
+Bug Fixes
+---------
+
+- Don't error out if getfacl(1) is called on a socket file.
+  Partially addresses: https://cygwin.com/pipermail/cygwin/2022-July/251768.html

@@ -1,0 +1,134 @@
+2022-04-21  Release Manager
+
+	* GCC 11.3.0 released.
+
+2021-12-19  Harald Anlauf  <anlauf@gmx.de>
+
+	Backported from master:
+	2021-12-14  Harald Anlauf  <anlauf@gmx.de>
+
+	PR libfortran/103634
+	* intrinsics/pack_generic.c (pack_internal): Handle case when the
+	array argument of PACK has one or more extents of size zero to
+	avoid invalid reads.
+
+2021-07-28  Release Manager
+
+	* GCC 11.2.0 released.
+
+2021-06-24  Sandra Loosemore  <sandra@codesourcery.com>
+	    Tobias Burnus  <tobias@codesourcery.com>
+
+	PR fortran/93524
+	* runtime/ISO_Fortran_binding.c (CFI_allocate): Fix
+	sm computation.
+
+2021-06-06  Andre Vehreschild  <vehre@gcc.gnu.org>
+	    Steve Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/98301
+	* caf/libcaf.h (_gfortran_caf_random_init): New function.
+	* caf/single.c (_gfortran_caf_random_init): New function.
+	* gfortran.map: Added fndecl.
+	* intrinsics/random_init.f90: Implement random_init.
+
+2021-05-03  Tobias Burnus  <tobias@codesourcery.com>
+
+	Backported from master:
+	2021-05-02  Tobias Burnus  <tobias@codesourcery.com>
+
+	PR libgomp/100352
+	* io/transfer.c (st_read_done_worker, st_write_done_worker): Add new
+	arg whether to unlock unit.
+	(st_read_done, st_write_done): Call it with true.
+	* io/async.c (async_io): Call it with false.
+	* io/io.h (st_write_done_worker, st_read_done_worker): Update prototype.
+
+2021-04-27  Release Manager
+
+	* GCC 11.1.0 released.
+
+2021-03-12  Tobias Burnus  <tobias@codesourcery.com>
+
+	* io/transfer.c (st_read_done_worker, st_write_done_worker):
+	Call unlock_unit here, add unit_lock lock around newunit_free call.
+	(st_read_done, st_write_done): Only call unlock_unit when not
+	calling the worker function.
+	* io/unit.c (set_internal_unit): Don't reset the unit_number
+	to the same number as this cause race warnings.
+
+2021-03-05  Harald Anlauf  <anlauf@gmx.de>
+
+	PR libfortran/99218
+	* m4/matmul_internal.m4: Invoke tuned matmul only for rank(b)>1.
+	* generated/matmul_c10.c: Regenerated.
+	* generated/matmul_c16.c: Likewise.
+	* generated/matmul_c4.c: Likewise.
+	* generated/matmul_c8.c: Likewise.
+	* generated/matmul_i1.c: Likewise.
+	* generated/matmul_i16.c: Likewise.
+	* generated/matmul_i2.c: Likewise.
+	* generated/matmul_i4.c: Likewise.
+	* generated/matmul_i8.c: Likewise.
+	* generated/matmul_r10.c: Likewise.
+	* generated/matmul_r16.c: Likewise.
+	* generated/matmul_r4.c: Likewise.
+	* generated/matmul_r8.c: Likewise.
+	* generated/matmulavx128_c10.c: Likewise.
+	* generated/matmulavx128_c16.c: Likewise.
+	* generated/matmulavx128_c4.c: Likewise.
+	* generated/matmulavx128_c8.c: Likewise.
+	* generated/matmulavx128_i1.c: Likewise.
+	* generated/matmulavx128_i16.c: Likewise.
+	* generated/matmulavx128_i2.c: Likewise.
+	* generated/matmulavx128_i4.c: Likewise.
+	* generated/matmulavx128_i8.c: Likewise.
+	* generated/matmulavx128_r10.c: Likewise.
+	* generated/matmulavx128_r16.c: Likewise.
+	* generated/matmulavx128_r4.c: Likewise.
+	* generated/matmulavx128_r8.c: Likewise.
+
+2021-03-03  Vittorio Zecca  <zeccav@gmail.com>
+	    Tobias Burnus  <tobias@codesourcery.com>
+
+	PR libfortran/81986
+	* runtime/string.c (gfc_itoa): Cast to unsigned before
+	negating.
+
+2021-02-12  Steve Kargl  <sgk@troutmask.apl.washington.edu>
+
+	PR libfortran/95647
+	* ieee/ieee_arithmetic.F90: Flip interfaces of operators .eq. to
+	== and .ne. to /= .
+
+2021-02-11  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/98825
+	* io/transfer.c (next_record_w): Insert check for seen_dollar and if
+	so, skip issueing next record.
+
+2021-01-27  Harris Snyder  <hsnyder@structura.bio>
+
+	* runtime/ISO_Fortran_binding.c (CFI_establish): fixed
+	strides for rank >2 arrays.
+
+2021-01-15  Harris Snyder  <hsnyder@structura.bio>
+
+	* runtime/ISO_Fortran_binding.c (CFI_establish): Fixed signed
+	  char arrays. Signed char or uint8_t arrays would cause
+	  crashes unless an element size is specified.
+
+2021-01-05  Samuel Thibault  <samuel.thibault@ens-lyon.org>
+
+	* configure: Re-generate.
+
+2021-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* ChangeLog-2020: Rotate ChangeLog.  New file.
+
+
+Copyright (C) 2021 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

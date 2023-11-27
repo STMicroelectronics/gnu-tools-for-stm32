@@ -1,0 +1,95 @@
+source "site.exp"
+source "$srcdir/winsup.api/known_bugs.tcl"
+
+if { ! [isnative] } {
+    verbose "skipping winsup.api because it's not native"
+    return
+}
+
+set rv ""
+
+set ltp_includes "-I$ltp_includes"
+set ltp_libs "$ltp_libs"
+
+set add_includes $ltp_includes
+set add_libs $ltp_libs
+
+set test_filter ""
+
+set env(PATH) "$runtime_root:$env(PATH)"
+
+if { [info exists env(CYGWIN_TESTSUITE_TESTS)] } {
+    set test_filter "$env(CYGWIN_TESTSUITE_TESTS)"
+}
+
+proc ws_spawn {cmd} {
+    global rv
+    verbose "running $cmd\n"
+    try {
+	set msg [exec -ignorestderr {*}$cmd "2>@1"]
+	set rv 0
+    } trap CHILDSTATUS {results options} {
+	verbose "returned $::errorCode\n"
+	set msg $results
+	set rv 1
+    }
+    verbose -log "$msg"
+    return $rv
+}
+
+verbose "Filter: $test_filter"
+
+foreach src [lsort [glob -nocomplain $srcdir/$subdir/*.c $srcdir/$subdir/*/*.{cc,c}]] {
+    if { $test_filter != "" && ! [regexp $test_filter $src] } {
+	verbose -log "Skipping $src"
+	continue
+    }
+
+    regsub "^$srcdir/$subdir/" $src "" testcase
+    regsub ".c$" $testcase "" base
+    regsub ".*/" $base "" basename
+    regsub "/" $base "-" base
+
+    if { [lsearch -exact $xfail_list $basename] >= 0 } {
+        set xfail_expected 1
+	setup_xfail "*-*-*"
+    } else {
+        set xfail_expected 0
+	clear_xfail
+    }
+
+    if [ file exists "$srcdir/$subdir/$basename.exp" ] then {
+	source "$srcdir/$subdir/$basename.exp"
+    } else {
+	ws_spawn "$CC -nodefaultlibs -mwin32 $CFLAGS $src $add_includes $add_libs $runtime_root/binmode.o -lgcc $runtime_root/libcygwin0.a -lkernel32 -luser32 -o $base.exe"
+	if { $rv } {
+	    fail "$testcase (compile)"
+	} else {
+	    if { $verbose } {
+	       set redirect_output "./$base.log"
+	    } else {
+	       set redirect_output /dev/null
+	    }
+	    file mkdir $tmpdir/$base
+	    ws_spawn "$cygrun ./$base.exe $testdll_tmpdir/$base > $redirect_output"
+	    file delete -force $tmpdir/$base
+	    if { $rv } {
+		fail "$testcase (execute)"
+		if { $xfail_expected } {
+		    catch { file delete "$base.exe" } err
+		    if { $err != "" } {
+			note "error deleting $base.exe: $err"
+		    }
+		}
+	    } else {
+		pass "$testcase"
+		if { ! $xfail_expected } {
+		    catch { file delete "$base.exe" } err
+		    if { $err != "" } {
+			note "error deleting $base.exe: $err"
+		    }
+		}
+	    }
+	}
+    }
+}

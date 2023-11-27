@@ -1,0 +1,86 @@
+# Copyright 2008-2022 Free Software Foundation, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+load_lib "ada.exp"
+
+if { [skip_ada_tests] } { return -1 }
+
+standard_ada_testfile foo
+
+foreach_with_prefix scenario {all minimal} {
+    set flags [list debug additional_flags=-fgnat-encodings=$scenario]
+
+    if {[gdb_compile_ada "${srcfile}" "${binfile}" executable $flags] != ""} {
+	return -1
+    }
+
+    clean_restart ${testfile}
+
+    set bp_location [gdb_get_line_number "STOP" ${testdir}/foo.adb]
+    if ![runto "foo.adb:$bp_location" ] then {
+	perror "Couldn't run ${testfile}"
+	return
+    }
+
+    gdb_test "print string_p" \
+	"= \\(foo\\.string_access\\) 0x\[0-9a-zA-Z\]+"
+
+    gdb_test "print string_p(3..4)" "= \"ll\""
+
+    gdb_test "print null_string" "= \\(foo\\.string_access\\) 0x0"
+
+    gdb_test "print arr_ptr" "= \\(access foo\\.little_array\\) 0x\[0-9a-zA-Z\]+"
+
+    gdb_test "print arr_ptr(2)" "= 22"
+
+    gdb_test "print arr_ptr(3..4)" "= \\(3 => 23, 24\\)"
+
+    gdb_test "ptype string_access" "= access array \\(<>\\) of character"
+
+    set kfail_int128support_re \
+	"That operation is not available on integers of more than 8 bytes\\."
+    set kfail_packed_array_range_re \
+	"cannot subscript or call something of type `foo__packed_array_ptr'"
+
+    gdb_test_multiple "print pa_ptr.all" "" {
+	-re -wrap " = \\(10, 20, 30, 40, 50, 60, 62, 63, -23, 42\\)" {
+	    pass $gdb_test_name
+	}
+	-re -wrap $kfail_int128support_re {
+	    kfail gdb/20991 $gdb_test_name
+	}
+    }
+
+    gdb_test_multiple "print pa_ptr(3)" "" {
+	-re -wrap " = 30" {
+	    pass $gdb_test_name
+	}
+	-re -wrap $kfail_int128support_re {
+	    kfail gdb/20991 $gdb_test_name
+	}
+	-re -wrap $kfail_packed_array_range_re {
+	    kfail gdb/28115 $gdb_test_name
+	}
+    }
+
+    gdb_test_multiple "print pa_ptr.all(3)" "" {
+	-re -wrap " = 30" {
+	    pass $gdb_test_name
+	}
+	-re -wrap $kfail_int128support_re {
+	    kfail gdb/20991 $gdb_test_name
+	}
+    }
+}

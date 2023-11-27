@@ -1,0 +1,19 @@
+# Multilibs for VxWorks.
+
+# The common variant across the board is for -mrtp
+MULTILIB_OPTIONS = mrtp
+MULTILIB_DIRNAMES = mrtp
+
+# Then variants for the "large" code model on x86_64, or fPIC on x86,
+# RTP only. -fPIC -mrtp -mcmodel=large is not functional yet.
+ifneq (,$(findstring x86_64, $(target)))
+MULTILIB_OPTIONS += mcmodel=large
+MULTILIB_DIRNAMES += large
+else
+MULTILIB_OPTIONS += fPIC
+MULTILIB_DIRNAMES += fPIC
+MULTILIB_MATCHES = fPIC=fpic
+
+# -fPIC is only supported in combination with -mrtp
+MULTILIB_EXCEPTIONS = fPIC
+endif

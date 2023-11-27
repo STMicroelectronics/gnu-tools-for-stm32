@@ -1,0 +1,359 @@
+2022-04-21  Release Manager
+
+	* GCC 11.3.0 released.
+
+2022-03-24  Pascal Obry  <obry@adacore.com>
+
+	PR ada/104767
+	* libgnat/g-sercom__mingw.adb (Close): Reset port handle to -1.
+	* libgnat/g-sercom__linux.adb (Close): Likewise.
+
+2022-03-16  Richard Biener  <rguenther@suse.de>
+
+	Backported from master:
+	2022-03-10  Richard Biener  <rguenther@suse.de>
+
+	PR ada/104861
+	* gcc-interface/Makefile.in (target_noncanonical): Substitute.
+	(OSCONS_CPP): Pass target_noncanonical as TARGET.
+
+2022-02-13  Maciej W. Rozycki  <macro@orcam.me.uk>
+
+	Backported from master:
+	2022-02-13  Maciej W. Rozycki  <macro@orcam.me.uk>
+
+	PR ada/98724
+	PR ada/97504
+	* Makefile.rtl (LIBGNAT_TARGET_PAIRS) <alpha*-*-linux*>: Use
+	wraplf version of Aux_Long_Long_Float.
+
+2022-01-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/104258
+	* exp_ch4.adb (Narrow_Large_Operation): Also copy the entity, if
+	any, when rewriting the operator node.
+
+2022-01-19  H.J. Lu  <hjl.tools@gmail.com>
+
+	Backported from master:
+	2022-01-19  H.J. Lu  <hjl.tools@gmail.com>
+
+	PR ada/103538
+	* gcc-interface/Makefile.in (target_cpu): Set to x32 for
+	x86_64-linux-gnux32.
+
+2022-01-19  H.J. Lu  <hjl.tools@gmail.com>
+
+	Backported from master:
+	2022-01-19  H.J. Lu  <hjl.tools@gmail.com>
+
+	PR ada/103538
+	* Makefile.rtl (LIBGNAT_TARGET_PAIRS): Add
+	$(TRASYM_DWARF_UNIX_PAIRS),
+	s-tsmona.adb<libgnat/s-tsmona__linux.adb,
+	$(GNATRTL_128BIT_PAIRS).
+	(EXTRA_GNATRTL_NONTASKING_OBJS): Add $(TRASYM_DWARF_UNIX_OBJS)
+	and $(GNATRTL_128BIT_OBJS).
+
+2021-10-20  Arnaud Charlet  <charlet@adacore.com>
+
+	PR ada/100486
+	* sem_prag.adb (Check_Valid_Library_Unit_Pragma): Do not raise an
+	exception as part of the bootstrap.
+
+2021-09-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* libgnat/s-dwalin.adb (Parse_Header): Tweak comments.
+	(Read_Entry_Format_Array): Tweak exception message.
+	(Symbolic_Address.Set_Result): Likewise.
+
+2021-09-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* libgnat/s-dwalin.adb (To_File_Name): Fetch only the last string
+	from the .debug_line_str section.
+	(Symbolic_Address.Set_Result): Likewise.
+
+2021-09-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* libgnat/s-dwalin.adb (Skip_Form): Fix cases of DW_FORM_addrx
+	and DW_FORM_implicit_const.  Replace Constraint_Error with
+	Dwarf_Error.
+
+2021-09-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* libgnat/s-objrea.adb (Get_Load_Address): Return 0 for ELF.
+
+2021-09-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* adaint.c (__gnat_get_executable_load_address): Add Win32 support.
+	* libgnat/s-objrea.ads (Get_Xcode_Bounds): Fix typo in comment.
+	(Object_File): Minor reformatting.
+	(ELF_Object_File): Uncomment predicate.
+	(PECOFF_Object_File): Likewise.
+	(XCOFF32_Object_File): Likewise.
+	* libgnat/s-objrea.adb: Minor reformatting throughout.
+	(Get_Load_Address): Implement for PE-COFF.
+	* libgnat/s-dwalin.ads: Remove clause for System.Storage_Elements
+	and use consistent wording in comments.
+	(Dwarf_Context): Set type of Low, High and Load_Address to Address.
+	* libgnat/s-dwalin.adb (Get_Load_Displacement): New function.
+	(Is_Inside): Call Get_Load_Displacement.
+	(Low_Address): Likewise.
+	(Open): Adjust to type change.
+	(Aranges_Lookup): Change type of Addr to Address.
+	(Read_Aranges_Entry): Likewise for Start and adjust.
+	(Enable_Cach): Adjust to type change.
+	(Symbolic_Address): Change type of Addr to Address.
+	(Symbolic_Traceback): Call Get_Load_Displacement.
+
+2021-09-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* libgnat/s-dwalin.ads: Remove clause for Ada.Exceptions.Traceback,
+	add clause for System.Traceback_Entries and alphabetize.
+	(AET): Delete.
+	(STE): New package renaming.
+	(Symbolic_Traceback): Adjust.
+	* libgnat/s-dwalin.adb: Remove clauses for Ada.Exceptions.Traceback
+	and System.Traceback_Entries.
+	(Symbolic_Traceback): Adjust.
+
+2021-09-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* libgnat/s-dwalin.ads: Adjust a few comments left and right.
+	(Line_Info_Register): Comment out unused components.
+	(Line_Info_Header): Add DWARF 5 support.
+	(Dwarf_Context): Likewise.  Rename "prologue" into "header".
+	* libgnat/s-dwalin.adb: Alphabetize "with" clauses.
+	(DWARF constants): Add DWARF 5 support and reorder.
+	(For_Each_Row): Adjust.
+	(Initialize_Pass): Likewise.
+	(Initialize_State_Machine): Likewise and fix typo.
+	(Open): Add DWARF 5 support.
+	(Parse_Prologue): Rename into...
+	(Parse_Header): ...this and add DWARF 5 support.
+	(Read_And_Execute_Isn): Rename into...
+	(Read_And_Execute_Insn): ...this and adjust.
+	(To_File_Name): Change parameter name and add DWARF 5 support.
+	(Read_Entry_Format_Array): New procedure.
+	(Skip_Form): Add DWARF 5 support and reorder.
+	(Seek_Abbrev): Do not count entries and add DWARF 5 support.
+	(Debug_Info_Lookup): Add DWARF 5 support.
+	(Symbolic_Address.Set_Result): Likewise.
+	(Symbolic_Address): Adjust.
+
+2021-09-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/101970
+	* exp_attr.adb (Expand_N_Attribute_Reference) <Attribute_Enum_Rep>:
+	Use an unchecked conversion instead of a regular conversion in the
+	enumeration case and remove Conversion_OK flag in the integer case.
+	<Attribute_Pos>: Remove superfluous test.
+
+2021-09-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (validate_size): Do not issue an error if the
+	old size has overflowed.
+
+2021-09-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity): For vector types, make
+	the representative array the debug type.
+
+2021-09-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (update_pointer_to): Set TYPE_CANONICAL on
+	pointer and reference types.
+
+2021-09-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (can_materialize_object_renaming_p): Do not
+	call UI_Is_In_Int_Range on the result of Normalized_First_Bit.
+
+2021-09-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <is_type>: Declare new
+	constant.  Adjust error message issued by validate_size in the case
+	of by-reference types.
+	(validate_size): Always use the error strings passed by the caller.
+
+2021-07-28  Release Manager
+
+	* GCC 11.2.0 released.
+
+2021-07-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (finish_subprog_decl): Remove obsolete line.
+
+2021-07-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/101094
+	* exp_attr.adb (Get_Integer_Type): Return an integer type with the
+	same signedness as the input type.
+
+2021-06-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Type>: Add PAT
+	local constant and use it throughout.  If it is set, use a ref-all
+	pointer type for the pointer-to-array field of the fat pointer type.
+	<E_Array_Subtype>: Add PAT local constant and use it throughout.
+
+2021-05-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Type>: Process
+	the implementation type of a packed type implemented specially.
+
+2021-05-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_subprog_type): Always translate
+	the Is_Pure flag into the "pure" attribute of GNU C.
+
+2021-05-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Call_to_gnu): Restrict previous change
+	to bitfields whose size is not equal to the type size.
+	(gnat_to_gnu): Likewise.
+
+2021-05-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (gnat_to_gnu) <N_Simple_Return_Statement>:
+	Put a SLOC on the assignment from the return value to the return
+	object in the copy-in/copy-out case.
+
+2021-04-27  Release Manager
+
+	* GCC 11.1.0 released.
+
+2021-04-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/99360
+	* exp_ch6.adb (Might_Have_Tasks): Return False when the type is the
+	class-wide type of a predefined iterator type.
+
+2021-04-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/misc.c (gnat_init): Set default range bits to 0.
+	* gcc-interface/trans.c (extract_encoding): Delete.
+	(decode_name): Likewise.
+	(File_Name_to_gnu): New function.
+	(gigi): Call it to translate file names.  Replace assertion on
+	1-1 mapping between files and line maps with conditional error.
+
+2021-04-11  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* gnat_ugn.texi (Top): Avoid invalid "up" link.
+
+2021-03-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/99802
+	* freeze.adb (Is_Full_Access_Aggregate): Call Is_Full_Access_Object
+	on the name of an N_Assignment_Statement to spot full access.
+
+2021-03-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Build a TYPE_STUB_DECL
+	for the main variant of an enumeration type declared as volatile.
+
+2021-03-09  Mikael Pettersson  <mikpelinux@gmail.com>
+
+	* raise-gcc.c: On Cygwin include mingw32.h to prevent
+	windows.h from including x86intrin.h or emmintrin.h.
+
+2021-03-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/99264
+	* init.c (__gnat_alternate_sta) [Linux]: Remove preprocessor test on
+	MINSIGSTKSZ and bump size to 32KB.
+	* libgnarl/s-osinte__linux.ads (Alternate_Stack_Size): Bump to 32KB.
+
+2021-03-02  Mikael Pettersson  <mikpelinux@gmail.com>
+
+	PR bootstrap/98590
+	* cstreams.c: Ensure fileno_unlocked() is visible on Cygwin.
+
+2021-03-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/99095
+	* sem_ch8.adb (Check_Constrained_Object): Restrict again the special
+	optimization for limited types to non-array types except in the case
+	of an extended return statement.
+
+2021-03-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/99020
+	* sem_ch3.adb (Build_Discriminated_Subtype): Set the Cloned_Subtype
+	only if the type is not private.
+
+2021-02-26  YunQiang Su  <yunqiang.su@cipunited.com>
+
+	PR ada/98996
+	* Makefile.rtl: <mips*-*-linux*>
+	add 128Bit operation file for MIPS N64 and N32 to
+	LIBGNAT_TARGET_PAIRS and EXTRA_GNATRTL_NONTASKING_OBJS
+
+2021-02-12  Arnaud Charlet  <charlet@adacore.com>
+
+	* repinfo.ads, repinfo.adb (*SO_Ref*): Restore.
+
+2021-02-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (components_to_record): If the first component
+	with rep clause is the _Parent field with variable size, temporarily
+	set it aside when computing the internal layout of the REP part again.
+	* gcc-interface/utils.c (finish_record_type): Revert to taking the
+	maximum when merging sizes for all record types with rep clause.
+	(merge_sizes): Put SPECIAL parameter last and adjust recursive calls.
+
+2021-02-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Array_Type>: Make the
+	two fields of the fat pointer type addressable, and do not make the
+	template type read-only.
+	<E_Record_Type>: If the type has discriminants mark it as may_alias.
+	* gcc-interface/utils.c (make_dummy_type): Likewise.
+	(build_dummy_unc_pointer_types): Likewise.
+
+2021-01-26  Marius Hillenbrand  <mhillen@linux.ibm.com>
+
+	PR ada/98228
+	* gcc-interface/utils.c (maybe_pad_type): Test the size of the new
+	packable type instead of its alignment for addressability's sake.
+
+2021-01-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (make_covariant_thunk): Set the DECL_CONTEXT
+	of the parameters and do not set TREE_PUBLIC on the thunk.
+	(maybe_make_gnu_thunk): Pass the alias to the covariant thunk.
+	* gcc-interface/utils.c (finish_subprog_decl): Set the DECL_CONTEXT
+	of the parameters here...
+	(begin_subprog_body): ...instead of here.
+
+2021-01-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/98740
+	* gcc-interface/trans.c (add_decl_expr): Always mark TYPE_ADA_SIZE.
+
+2021-01-14  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	PR ada/98595
+	* Makefile.rtl (LIBGNAT_TARGET_PAIRS) <riscv*-*-rtems*>: Use
+	wraplf version of Aux_Long_Long_Float.
+
+2021-01-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnatvsn.ads: Bump copyright year.
+
+2021-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* gnat_ugn.texi: Bump @copying's copyright year.
+	* gnat_rm.texi: Likewise.
+
+2021-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* ChangeLog-2020: Rotate ChangeLog.  New file.
+
+
+Copyright (C) 2021 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
