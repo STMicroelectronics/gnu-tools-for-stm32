@@ -1,0 +1,304 @@
+2019-02-25  Nick Clifton  <nickc@redhat.com>
+
+	* objdump.c (sym_ok): New function.
+	(find_symbol_for_address): Use new function.
+	(disassemble_section): Compare sections by name, not pointer.
+	(dump_dwarf): Move code to initialise byte_get pointer and iterate
+	over separate debug files from here to ...
+	(dump_bfd): ... here.  Add parameter indicating that a separate
+	debug info file is being dumped.  For main file, pull in the
+	symbol tables from all separate debug info files.
+	(display_object): Update call to dump_bfd.
+	* doc/binutils.texi: Document extened behaviour of the
+	--dwarf=follow-links option.
+	* NEWS: Mention this new feature.
+	* testsuite/binutils-all/objdump.WK2: Update expected output.
+	* testsuite/binutils-all/objdump.exp (test_follow_debuglink): Add
+	options and dump file parameters.
+	Add extra test.
+	* testsuite/binutils-all/objdump.WK3: New file.
+	* testsuite/binutils-all/readelf.exp: Change expected output for
+	readelf -wKis test.
+	* testsuite/binutils-all/readelf.wKis: New file.
+
+2019-02-22  Nick Clifton  <nickc@redhat.com>
+
+	PR 23843
+	* dwarf.h (struct separate_info): New structure for containing
+	information on separate debug info files.
+	* dwarf.c (struct dwo_info): New structure for containing dwo
+	links.
+	(first_dwo_info): Chain of dwo_info structures.
+	(first_separate_file): Chain of separate_info structures.
+	(separate_debug_file, separate_debug_filename): Delete.
+	(fetch_alt_indirect_string): Scan all separate debug info files
+	for the requested string.
+	(add_dwo_info): New function.
+	(add_dwo_name): New function.
+	(add_dwo_dir): New function.
+	(add_dwo_id: New function.
+	(free_dwo_info): New function.
+	(read_and_display_attr_value): Store DWO data using the new
+	functions.
+	(load_debug_section_with_follow): If necessary, scan the list of
+	separate debug info files for the requested section.
+	(add_separate_debug_file): New function.
+	(load_separate_debug_info): Call add_separate_debug_file to store
+	the information on the newly loaded file.
+	(load_dwo_file): Likewise.
+	(load_separate_debif_file): Rename to load_separate_debug_files.
+	Change return type to boolean.  If following links then attempt to
+	load all separate debug info files, not just the first one.
+	(free_debug_memory): Release memory in dwo_info and separate_info
+	chains.
+	* objdump.c (dump_dwarf): Iterate over all loaded debg info files.
+	* readelf.c (process_object): Likewise.
+	* doc/debug.options.texi: Update descriptions of links and
+	follow-links options.
+	* testsuite/binutils-all/objdump.WK2: Update expected output.
+	* testsuite/binutils-all/readelf.k2: Likewise.
+	* NEWS: Announce the new feature.
+
+2019-02-21  Nick Clifton  <nickc@redhat.com>
+
+	PR 24247
+	* unwind-ia64.c: Include sysdep.h.
+	(unw_decode_x1): Check current pointer against end pointer before
+	accessing memory.
+	(unw_decode_x2): Likewise.
+	(unw_decode_x3): Likewise.
+	(unw_decode_x4): Likewise.
+	(unw_decode_r2): Likewise.
+	(unw_decode_p2_p5): Likewise.
+	(unw_decode_p7_p10): Likewise.
+	(unw_decode): Likewise.
+
+2019-02-20  Nick Clifton  <nickc@redhat.com>
+
+	PR 24246
+	* readelf.c (print_stapsdt_note): Harden against corrupt notes.
+
+	PR 24244
+	* unwind-ia64.c (unw_decode_uleb128): Add end parameter, use it to
+	prevent walking off the end of the buffer.
+	(unw_decode_x1): Add end paramter, pass it to unw_decode_uleb128.
+	(unw_decode_x2): Likewise.
+	(unw_decode_x3): Likewise.
+	(unw_decode_x4): Likewise.
+	(unw_decode_r2): Pass the end parameter to unw_decode_uleb128.
+	(unw_decode_r3): Likewise.
+	(unw_decode_p7_p10): Likewise.
+	(unw_decode_b2): Likewise.
+	(unw_decode_b3_x4): Likewise.
+
+	PR 24243
+	* readelf.c (process_mips_specific): Check for an options section
+	that is too small to even contain a single option.
+
+	PR 24242
+	* readelf.c (print_ia64_vms_note): Harden against corrupt notes.
+
+2019-02-20  Alan Modra  <amodra@gmail.com>
+
+	PR 24132
+	PR 24138
+	* readelf.c (get_data): Avoid possibility of overflow when
+	checking for a read that may extend past end of file.
+	(process_program_headers): Likewise.
+
+2019-02-20  Alan Modra  <amodra@gmail.com>
+
+	PR 24233
+	* objdump.c (dump_bfd_private_header): Print warning if
+	bfd_print_private_bfd_data returns false.
+
+2019-02-12  Nick Clifton  <nickc@redhat.com>
+
+	PR 23440
+	* README-how-to-make-a-release: Use git clean to delete spurious
+	files from the local source repository.
+
+2019-02-08  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* size.c (berkeley_format): Delete.
+	(enum output_format): New enum.
+	(selected_output_format): New variable.
+	(usage): Update to mention GNU format.
+	(main): Update to extract options, and select format as needed.
+	Handle GNU format where needed.
+	(berkeley_sum): Renamed to...
+	(berkeley_or_gnu_sum): ...this, and updated to handle both formats.
+	(berkeley_format): Renamed to...
+	(berkeley_or_gnu_format): ...this, and updated to handle both
+	formats.
+	(print_sizes): Handle GNU format.
+	* doc/binutils.texi (size): Document new GNU format.
+	* testsuite/binutils-all/size.exp: Add test of extended
+	functionality.
+	* NEWS: Mention new functionality.
+
+2019-02-08  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* doc/binutils.texi (size): Update example output for Berkeley
+	format output.
+
+2019-02-07  Nick Clifton  <nickc@redhat.com>
+
+	* README-how-to-make-a-release: Add a note about updating the
+	obsolete targets in the bfd/config.bfd file.
+
+2019-02-04  Nick Clifton  <nickc@redhat.com>
+
+	* README-how-to-make-a-release: Add more notes on making a release.
+
+2019-01-25  Nick Clifton  <nickc@redhat.com>
+
+	PR 24131
+	* readelf.c (process_notes_at): Prevent an illegal memory access
+	when the note's namesize is zero.
+	(decode_tic6x_unwind_bytecode): Add code to handle the case where
+	no registers are specified in a frame pop instruction.
+
+2019-01-25  Nick Clifton  <nickc@redhat.com>
+
+	* po/bg.po: Updated Bulgarian translation.
+
+2019-01-23  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+	* po/pt.po: Updated Portuguese translation.
+
+2019-01-21  Nick Clifton  <nickc@redhat.com>
+
+	* po/uk.po: Updated Ukranian translation.
+
+2019-01-19  Nick Clifton  <nickc@redhat.com>
+
+	* configure: Regenerate.
+	* binutils/po/binutils.pot.
+
+	* README-how-to-make-a-release: Update description on how to make
+	a branch.
+
+2018-06-24  Nick Clifton  <nickc@redhat.com>
+
+	2.32 branch created.
+
+2019-01-17  Nick Clifton  <nickc@redhat.com>
+
+	* objdump.c (disassemble_section): When disassembling from a
+	symbol only stop at the next symbol if the original symbol was not
+	a function symbol.  Otherwise continue disassembling until a new
+	function is reached.
+	* testsuite/binutils-all/objdump.exp: Add tests of extended
+	functionality.
+	* testsuite/binutils-all/disasm.s: New test source file.
+
+2019-01-16  Kito Cheng  <kito@andestech.com>
+	    Nelson Chu  <nelson@andestech.com>
+
+	* readelf.c (get_riscv_section_type_name): New function.
+	(get_section_type_name): Add handler for RISC-V.
+	(riscv_attr_tag_t): Declare.
+	(riscv_attr_tag): New.
+	(display_riscv_attribute): New function.
+	(process_attributes): Add handler for RISC-V.
+	* testsuite/binutils-all/strip-3.d: Remove .riscv.attribute
+	section.
+
+2019-01-10  Nick Clifton  <nickc@redhat.com>
+
+	PR 23963
+	* objdump.c (sanitize_string): New function.  Removes control
+	characters from symbol names.
+	(dump_section_header): Use new function.
+	(objdump_print_symname): Likewise.
+	(objdump_print_addr_with_sym): Likewise.
+	(show_line): Likewise.
+	(disassemble_bytes): Likewise.
+	(disassemble_section): Likewise.
+	(load_specific_debug_section): Likewise.
+	(read_section_stabs): Likewise.
+	(print_section_stabs): Likewise.
+	(dump_section): Likewise.
+	(dump_reloc_set): Likewise.
+	(dump_relocs_in_section): Likewise.
+	(dump_bfd): Likewise.
+	(display_any_bfd): Likewise.
+
+2019-01-09  Nick Clifton  <nickc@redhat.com>
+
+	PR 24049
+	* readelf.c (process_archive): Use arch.file_name in error
+	messages until the qualified name is available.
+
+2019-01-09  Andrew Paprocki  <andrew@ishiboo.com>
+
+	* configure: Regenerate.
+
+2019-01-09  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/binutils-all/cxxfilt.exp: Pass --no-strip-underscores
+	unconditionally to tests needing the option rather than via a
+	list of targets.
+
+2019-01-08  Nick Clifton  <nickc@redhat.com>
+
+	PR 24044
+	* cxxfilt.c (hp_symbol_characters): Delete.
+	(main): Remove depcreated demangling styles.
+	* stabs.c (parse_stab_argtypes): Remove support for old gnu v2
+	demangling opnames.
+	* testsuite/binutils-all/cxxfilt.exp: Use the
+	--no-strip-underscore option for targets that do prefix their
+	symbols with underscores.
+	Update tests to eliminate those that use gnu v2 encoding.
+
+2019-01-08  Tamar Christina  <tamar.christina@arm.com>
+
+	PR 24065
+	* testsuite/binutils-all/copy-6.d: New test.
+	* testsuite/binutils-all/objcopy.exp: Use it.
+
+2019-01-08  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/lib/binutils-common.exp (run_dump_test): Don't prepend
+	$srcdir/$subdir to source file name if it starts with "./".
+
+2019-01-05  Yoshinori Sato <ysato@users.sourceforge.jp>
+
+	* readelf.c (get_machine_flags): Add RXv3 output.
+
+2019-01-04  Nick Clifton  <nickc@redhat.com>
+
+	PR 24005
+	* objdump.c (load_specific_debug_section): Check for integer
+	overflow before attempting to allocate contents.
+
+2019-01-04  Nick Clifton  <nickc@redhat.com>
+
+	PR 24001
+	* objcopy.c (copy_object): Free dhandle after writing out the
+	debug information.
+	* objdump.c (dump_bfd): Free dhandle after printing out the debug
+	information.
+
+
+2019-01-01  Alan Modra  <amodra@gmail.com>
+
+	Update year range in copyright notice of all files.
+
+For older changes see ChangeLog-2018
+
+Copyright (C) 2019 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+End:

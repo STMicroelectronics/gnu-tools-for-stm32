@@ -1,0 +1,555 @@
+2019-02-24  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-ppc.c (parse_tls_arg): Wrap in #ifdef OBJ_ELF.
+
+2019-02-24  Alan Modra  <amodra@gmail.com>
+
+	PR 24144
+	* config/obj-aout.c (obj_aout_frob_file_before_fix): Write to end
+	of section to ensure file contents cover aligned section size.
+
+2019-02-22  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/tc-arm.c (arm_cpus): Add neoverse-n1.
+	* doc/c-arm.texi (-mcpu): Document neoverse-n1 value.
+
+2019-02-22  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/tc-aarch64.c (aarch64_cpus): Add neoverse-e1.
+	* doc/c-aarch64.texi (-mcpu): Document neoverse-e1 value.
+
+2019-02-22  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/tc-aarch64.c (aarch64_cpus): Add neoverse-n1.
+	* doc/c-aarch64.texi (-mcpu): Document neoverse-n1 value.
+
+2019-02-19  Paul Hua  <paul.hua.gm@gmail.com>
+
+	* NEWS: Mention -m[no-]fix-loongson3-llsc.
+	* configure.ac: Add --enable-mips-fix-loongson3-llsc.
+	Define DEFAULT_MIPS_FIX_LOONGSON3_LLSC.
+	* config.in: Regenerated.
+	* configure: Likewise.
+	* config/tc-mips.c (sync_insn, mips_fix_loongson3_llsc):
+	New variables.
+	(options): New OPTION_FIX_LOONGSON3_LLSC,
+	OPTION_NO_FIX_LOONGSON3_LLSC.
+	(md_longopts): Add -m[no-]fix-loongson3-llsc.
+	(md_begin): Initialize sync insn.
+	(fix_loongson3_llsc): New.
+	(append_insn): Call fix_loongson3_llsc.
+	(md_parse_option): Handle OPTION_FIX_LOONGSON3_LLSC,
+	OPTION_NO_FIX_LOONGSON3_LLSC.
+	(md_show_usage): Display -m[no-]fix-loongson3-llsc.
+	* doc/c-mips.texi: Document -m[no-]fix-loongson3-llsc,
+	--enable-mips-fix-loongson3-llsc=[yes|no].
+
+2019-02-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/24165
+	* frags.c (frag_var_init): Pass max_chars to TC_FRAG_INIT as
+	max_bytes.
+	* config/tc-aarch64.h (TC_FRAG_INIT): Add and pass max_bytes to
+	aarch64_init_frag.
+	* /config/tc-arm.h (TC_FRAG_INIT): And and pass max_bytes to
+	arm_init_frag.
+	* config/tc-avr.h (TC_FRAG_INIT): And and ignore max_bytes.
+	* config/tc-ia64.h (TC_FRAG_INIT): Likewise.
+	* config/tc-mmix.h (TC_FRAG_INIT): Likewise.
+	* config/tc-nds32.h (TC_FRAG_INIT): Likewise.
+	* config/tc-ns32k.h (TC_FRAG_INIT): Likewise.
+	* config/tc-rl78.h (TC_FRAG_INIT): Likewise.
+	* config/tc-rx.h (TC_FRAG_INIT): Likewise.
+	* config/tc-score.h (TC_FRAG_INIT): Likewise.
+	* config/tc-tic54x.h (TC_FRAG_INIT): Likewise.
+	* config/tc-tic6x.h (TC_FRAG_INIT): Likewise.
+	* config/tc-xtensa.h (TC_FRAG_INIT): Likewise.
+	* config/tc-i386.h (MAX_MEM_FOR_RS_ALIGN_CODE): Set to
+	(alignment ? ((1 << alignment) - 1) : 1)
+	(i386_tc_frag_data): Add max_bytes.
+	(TC_FRAG_INIT): Add and track max_bytes.
+	(HANDLE_ALIGN): Replace MAX_MEM_FOR_RS_ALIGN_CODE with
+	fragP->tc_frag_data.max_bytes.
+	* doc/internals.texi: Update TC_FRAG_TYPE with max_bytes.
+
+2019-02-08  Jim Wilson  <jimw@sifive.com>
+
+	* config/tc-riscv.c (validate_riscv_insn) <'C'>: Add 'z' support.
+	(riscv_ip) <'C'>: Add 'z' support.
+
+2019-02-07  Tamar Christina  <tamar.christina@arm.com>
+
+	* config/tc-arm.c (insns): Redefine THUMB_VARIANT and ARM_VARIANT for
+	hlt to armv1.
+	* testsuite/gas/arm/armv8a-automatic-hlt.d: Update TAGs
+	* testsuite/gas/arm/hlt.d: New test.
+	* testsuite/gas/arm/hlt.s: New test.
+
+2019-02-07  Tamar Christina  <tamar.christina@arm.com>
+
+	* testsuite/gas/aarch64/undefined_advsimd_armv8_3.d: New test.
+	* testsuite/gas/aarch64/undefined_advsimd_armv8_3.s: New test.
+
+2019-02-07  Tamar Christina  <tamar.christina@arm.com>
+
+	PR binutils/23212
+	* testsuite/gas/aarch64/undefined_by_elem_sz_l.s: New test.
+	* testsuite/gas/aarch64/undefined_by_elem_sz_l.d: New test.
+
+2019-02-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/tc-visium.c (md_assemble) <mode_cad>: Align instruction on
+	64-bit boundaries for the GR6.
+	* testsuite/gas/visium/allinsn_gr6.s: Tweak.
+	* testsuite/gas/visium/allinsn_gr6.d: Likewise.
+	* testsuite/gas/visium/bra-1.d: New test.
+	* testsuite/gas/visium/bra-1.s: Likewise.
+	* testsuite/gas/visium/visium.exp: Run bra-1 test.
+
+2019-01-31  John Darrington <john@darrington.wattle.id.au>
+
+        * config/tc-s12z.c (lex_imm): Add new argument exp_o.
+	(emit_reloc): New function.
+	(md_apply_fix): [BFD_RELOC_S12Z_OPR] Recognise that it
+	can be either 2 bytes or 3 bytes long.
+	* testsuite/gas/s12z/mov-imm-reloc.d: New file.
+	* testsuite/gas/s12z/mov-imm-reloc.s: New file.
+	* testsuite/gas/s12z/s12z.exp: Add them.
+
+2019-01-31  John Darrington <john@darrington.wattle.id.au>
+
+	* config/tc-s12z.c (md_apply_fix): Fix incorrect limits.
+	* testsuite/gas/s12z/pc-rel-bad.d: New file.
+	* testsuite/gas/s12z/pc-rel-bad.l: New file.
+	* testsuite/gas/s12z/pc-rel-bad.s: New file.
+	* testsuite/gas/s12z/pc-rel-good.d: New file.
+	* testsuite/gas/s12z/pc-rel-good.s: New file.
+	* testsuite/gas/s12z/s12z.exp: Add them.
+
+2019-01-31  John Darrington <john@darrington.wattle.id.au>
+
+	* config/tc-s12z.c (tfr): Emit warning if operands are the same.
+	* testsuite/gas/s12z/exg.d: New test case.
+	* testsuite/gas/s12z/exg.l: New file.
+
+2019-01-31  John Darrington <john@darrington.wattle.id.au>
+
+	* config/tc-s12z.c (lex_opr): Add a parameter to indicate whether
+	immediate mode operands should be permitted.
+	* testsuite/s12z/imm-dest.d: New file.
+	* testsuite/s12z/imm-dest.l: New file.
+	* testsuite/s12z/imm-dest.s: New file.
+	* testsuite/s12z/s12z.exp: Add them.
+
+2019-01-31  Andreas Krebbel  <krebbel@linux.ibm.com>
+
+	* config/tc-s390.c (s390_parse_cpu): New entry for arch13.
+	* doc/c-s390.texi: Document arch13 march option.
+	* testsuite/gas/s390/s390.exp: Run the arch13 related tests.
+	* testsuite/gas/s390/zarch-arch13.d: New test.
+	* testsuite/gas/s390/zarch-arch13.s: New test.
+	* testsuite/gas/s390/zarch-z13.d: Expect the renamed mnemonics
+	also for z13.
+
+2019-01-31  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-alpha.c (md_apply_fix): Correct range checks for
+	BFD_RELOC_ALPHA_NOP, BFD_RELOC_ALPHA_LDA, BFD_RELOC_ALPHA_BSR.
+	* config/tc-arm.c (md_apply_fix): Use llabs rather than abs.
+	* config/tc-csky.c (get_macro_reg_vals): Pass s to csky_show_error.
+
+2019-01-28  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (md_apply_fix): Mark fixups for constant
+	symbols as done in md_apply_fix.
+	* testsuite/gas/all/forward.d: Don't XFAIL for xtensa.
+
+2019-01-28  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+	* po/ru.po: Updated Russian translation.
+
+2019-01-28  Alan Modra  <amodra@gmail.com>
+
+	* configure.ac (ac_checking): Set from bfd/development.sh
+	development variable.
+	* configure: Regenerate.
+
+2019-01-25  Sudakshina Das  <sudi.das@arm.com>
+
+	* config/tc-aarch64.c (warn_unpredictable_ldst): Exempt
+	stg, st2g, stzg and stz2g from Xt == Xn with writeback warning.
+	* testsuite/gas/aarch64/armv8_5-a-memtag.d: Change tests for
+	stg, stzg, st2g and stz2g.
+	* testsuite/gas/aarch64/armv8_5-a-memtag.s: Likewise.
+	* testsuite/gas/aarch64/illegal-memtag.l: Likewise.
+	* testsuite/gas/aarch64/illegal-memtag.s: Likewise.
+
+2019-01-25  Sudakshina Das  <sudi.das@arm.com>
+
+	* testsuite/gas/aarch64/armv8_5-a-memtag.d: New tests for stzgm.
+	* testsuite/gas/aarch64/armv8_5-a-memtag.s: Likewise.
+	* testsuite/gas/aarch64/illegal-memtag.l: Likewise.
+	* testsuite/gas/aarch64/illegal-memtag.s: Likewise.
+
+2019-01-25  Sudakshina Das  <sudi.das@arm.com>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* config/tc-aarch64.c (parse_address_main): Remove support for
+	[base]! address expression.
+	(parse_operands): Remove support for AARCH64_OPND_ADDR_SIMPLE_2.
+	(warn_unpredictable_ldst): Remove support for ldstgv_indexed.
+	* testsuite/gas/aarch64/armv8_5-a-memtag.d: Remove tests for ldgv
+	and stgv.
+	* testsuite/gas/aarch64/armv8_5-a-memtag.s: Likewise.
+	* testsuite/gas/aarch64/illegal-memtag.l: Likewise.
+	* testsuite/gas/aarch64/illegal-memtag.s: Likewise.
+
+2019-01-25  Wu Heng  <wu.heng@zte.com.cn>
+
+	PR gas/23940
+	* macro.c (getstring): Check array bound before accessing.
+
+2019-01-25  Alan Modra  <amodra@gmail.com>
+
+	PR 20902
+	PR 24125
+	* read.c (stringer): Delete assertion.
+
+2019-01-21  Nick Clifton  <nickc@redhat.com>
+
+	* po/uk.po: Updated Ukranian translation.
+
+2019-01-19  Nick Clifton  <nickc@redhat.com>
+
+	* config.in: Regenerate.
+	* configure: Regenerate.
+	* po/gas.pot: Regenerate.
+
+2018-06-24  Nick Clifton  <nickc@redhat.com>
+
+	2.32 branch created.
+
+2019-01-17  Tamar Christina  <tamar.christina@arm.com>
+
+	* testsuite/gas/arm/archv6t2-1-pe.d: New test.
+	* testsuite/gas/arm/archv6t2-1.d: Skip pe.
+	* testsuite/gas/arm/csdb.d: Skip pe.
+	* testsuite/gas/arm/sb-thumb1-pe.d: New test.
+	* testsuite/gas/arm/sb-thumb1.d: Skip pe.
+	* testsuite/gas/arm/sb-thumb2-pe.d: New test.
+	* testsuite/gas/arm/sb-thumb2.d: Skip pe.
+	* testsuite/gas/arm/udf.d: Skip pe.
+
+2019-01-16  Kito Cheng  <kito@andestech.com>
+
+	* testsuite/gas/riscv/attribute-empty.d: New.
+
+2019-01-16  Kito Cheng  <kito@andestech.com>
+	    Nelson Chu  <nelson@andestech.com>
+
+	* config/tc-riscv.c (DEFAULT_RISCV_ATTR): Define to 0 if not defined.
+	(riscv_set_options): Add `arch_attr` field.
+	(riscv_opts): Set default value for arch_attr.
+	(riscv_write_out_arch_attr): New.
+	(riscv_set_public_attributes): Likewise.
+	(riscv_md_end): Likewise.
+	(riscv_convert_symbolic_attribute): Likewise.
+	(s_riscv_attribute): Likewise.
+	(explicit_arch_attr): Likewise.
+	(riscv_pseudo_table): Add .attribute to the table.
+	(options): Add OPTION_ARCH_ATTR and OPTION_NO_ARCH_ATTR
+	enumeration constants.
+	(md_longopts): Add `march-attr' and `mno-arch-attr' options.
+	(md_parse_option): Handle the new options.
+	(md_show_usage): Document the `march-attr' option.
+	* config/tc-riscv.h (md_end): Define as riscv_md_end
+	(riscv_md_end): Declare.
+	(CONVERT_SYMBOLIC_ATTRIBUTE): Define as
+	riscv_convert_symbolic_attribute.
+	(riscv_convert_symbolic_attribute): Declare.
+	(start_assemble): Declare.
+	* testsuite/gas/elf/elf.exp: Adjust test case for section2.e.
+	* testsuite/gas/elf/section2.e-riscv: New.
+	* testsuite/gas/riscv/attribute-01.d: New test
+	* testsuite/gas/riscv/attribute-02.d: Likewise.
+	* testsuite/gas/riscv/attribute-03.d: Likewise.
+	* testsuite/gas/riscv/attribute-04.d: Likewise.
+	* testsuite/gas/riscv/attribute-04.s: Likewise.
+	* testsuite/gas/riscv/attribute-05.d: Likewise.
+	* testsuite/gas/riscv/attribute-05.s: Likewise.
+	* testsuite/gas/riscv/attribute-06.d: Likewise.
+	* testsuite/gas/riscv/attribute-06.s: Likewise.
+	* testsuite/gas/riscv/attribute-07.d: Likewise.
+	* testsuite/gas/riscv/attribute-07.s: Likewise.
+	* testsuite/gas/riscv/attribute-08.d: Likewise.
+	* testsuite/gas/riscv/attribute-08.s: Likewise.
+	* testsuite/gas/riscv/attribute-unknown.d: Likewise.
+	* testsuite/gas/riscv/attribute-unknown.s: Likewise.
+	* testsuite/gas/riscv/empty.l: Likewise.
+	* doc/c-riscv.texi (.attribute): Add documentation.
+	* configure.ac (--enable-default-riscv-attribute): New options.
+	* configure: Re-generate.
+	* config.in: Re-generate.
+
+2019-01-16  John Darrington <john@darrington.wattle.id.au>
+
+	* config/tc-s12z.c (lex_reg_name): Compare the length of the strings
+	before the contents.
+	* testsuite/gas/s12z/labels.d: New file.
+	* testsuite/gas/s12z/labels.s: New file.
+	* testsuite/gas/s12z/s12z.exp: Add them.
+	* config/tc-s12z.c (tfr): Change as_bad to as_warn.
+	Also fix message typo and semantics.
+	* config/tc-s12z.c (emit_opr): Emit BFD_RELOC_S12Z_OPR instead of
+	BFD_RELOC_24.
+	* testsuite/gas/s12z/opr-indirect-expr.d: Expect R_S12Z_OPR instead
+	of R_S12Z_EXT24.
+
+2019-01-14  Srinath Parvathaneni  <srinath.parvathaneni@arm.com>
+
+	* config/tc-arm.c (arm_ext_v6k_v6t2): Define.
+	(insns) [ARM_VARIANT]: Modified.
+	(insns) [THUMB_VARIANT]: To implement few ARMv6K instructions
+	in ARMv6T2 as well.
+	* testsuite/gas/arm/archv6t2-1.d: New test.
+	* testsuite/gas/arm/archv6t2-1.s: Likewise.
+	* testsuite/gas/arm/archv6t2-2.d: Likewise.
+
+2019-01-11  Alan Modra  <amodra@gmail.com>
+
+	PR 23963
+	* testsuite/gas/m68hc11/lbranch-dwarf2.d: Adjust for PR23963 change.
+	* testsuite/gas/m68hc11/opers12-dwarf2.d: Likewise.
+
+2019-01-10  Nick Clifton  <nickc@redhat.com>
+
+	PR 23963
+	* testsuite/gas/mips/mips16-branch-absolute-1.d: Adjust for the
+	fact that control characters are now displayed as escape
+	sequences.
+	* testsuite/gas/mips/mips16-e.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-0.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-1.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-delay-0.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-delay-1.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-n32-0.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-n32-1.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-n64-sym32-0.d: Likewise.
+	* testsuite/gas/mips/mips16-pcrel-n64-sym32-1.d: Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-0.d: Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-1.d: Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-delay-0.d: Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-delay-1.d: Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-n32-0.d: Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-n32-1.d: Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-n64-sym32-0.d:
+	Likewise.
+	* testsuite/gas/mips/mips16e2@mips16-pcrel-n64-sym32-1.d:
+	Likewise.
+	* testsuite/gas/mips/mipsel16-e.d: Likewise.
+	* testsuite/gas/mips/mipsr6@msa.d: Likewise.
+	* testsuite/gas/mips/mipsr6@relax-swap3.d: Likewise.
+	* testsuite/gas/mips/r6-64-n32.d: Likewise.
+	* testsuite/gas/mips/r6-64-n64.d: Likewise.
+	* testsuite/gas/mips/r6-n32.d: Likewise.
+	* testsuite/gas/mips/r6-n64.d: Likewise.
+	* testsuite/gas/mips/r6.d: Likewise.
+	* testsuite/gas/mips/tmips16-e.d: Likewise.
+	* testsuite/gas/mips/tmipsel16-e.d: Likewise.
+	* testsuite/gas/mn10300/relax.d: Likewise.
+
+2019-01-09  John Darrington <john@darrington.wattle.id.au>
+
+        * testsuite/gas/s12z/jsr.s: New case.
+	* testsuite/gas/s12z/jsr.d: New case.
+
+2019-01-09  Andrew Paprocki  <andrew@ishiboo.com>
+
+	* configure: Regenerate.
+
+2019-01-08  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/tc-aarch64.c (aarch64_cpus): Add ares.
+	* doc/c-aarch64.texi (-mcpu): Document ares value.
+
+2019-01-08  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/gas/rx/rx.exp: Create generated test source in
+	current directory.
+	* testsuite/gas/rx/Xtod.d, * testsuite/gas/rx/abs.d,
+	* testsuite/gas/rx/adc.d, * testsuite/gas/rx/add.d,
+	* testsuite/gas/rx/and.d, * testsuite/gas/rx/bclr.d,
+	* testsuite/gas/rx/bcnd.d, * testsuite/gas/rx/bfmov.d,
+	* testsuite/gas/rx/bmcnd.d, * testsuite/gas/rx/bnot.d,
+	* testsuite/gas/rx/bra.d, * testsuite/gas/rx/brk.d,
+	* testsuite/gas/rx/bset.d, * testsuite/gas/rx/bsr.d,
+	* testsuite/gas/rx/btst.d, * testsuite/gas/rx/clrpsw.d,
+	* testsuite/gas/rx/cmp.d, * testsuite/gas/rx/dabs.d,
+	* testsuite/gas/rx/dadd.d, * testsuite/gas/rx/dbt.d,
+	* testsuite/gas/rx/dcmp.d, * testsuite/gas/rx/ddiv.d,
+	* testsuite/gas/rx/div.d, * testsuite/gas/rx/divu.d,
+	* testsuite/gas/rx/dmov.d, * testsuite/gas/rx/dmul.d,
+	* testsuite/gas/rx/dneg.d, * testsuite/gas/rx/dpopm.d,
+	* testsuite/gas/rx/dpushm.d, * testsuite/gas/rx/dround.d,
+	* testsuite/gas/rx/dsqrt.d, * testsuite/gas/rx/dsub.d,
+	* testsuite/gas/rx/dtoX.d, * testsuite/gas/rx/emaca.d,
+	* testsuite/gas/rx/emsba.d, * testsuite/gas/rx/emul.d,
+	* testsuite/gas/rx/emula.d, * testsuite/gas/rx/emulu.d,
+	* testsuite/gas/rx/fadd.d, * testsuite/gas/rx/fcmp.d,
+	* testsuite/gas/rx/fdiv.d, * testsuite/gas/rx/fmul.d,
+	* testsuite/gas/rx/fsqrt.d, * testsuite/gas/rx/fsub.d,
+	* testsuite/gas/rx/ftoi.d, * testsuite/gas/rx/ftou.d,
+	* testsuite/gas/rx/gprel.d, * testsuite/gas/rx/int.d,
+	* testsuite/gas/rx/itof.d, * testsuite/gas/rx/jmp.d,
+	* testsuite/gas/rx/jsr.d, * testsuite/gas/rx/machi.d,
+	* testsuite/gas/rx/maclh.d, * testsuite/gas/rx/maclo.d,
+	* testsuite/gas/rx/max.d, * testsuite/gas/rx/min.d,
+	* testsuite/gas/rx/mov.d, * testsuite/gas/rx/movco.d,
+	* testsuite/gas/rx/movli.d, * testsuite/gas/rx/movu.d,
+	* testsuite/gas/rx/msbhi.d, * testsuite/gas/rx/msblh.d,
+	* testsuite/gas/rx/msblo.d, * testsuite/gas/rx/mul.d,
+	* testsuite/gas/rx/mulhi.d, * testsuite/gas/rx/mullh.d,
+	* testsuite/gas/rx/mullo.d, * testsuite/gas/rx/mvfacgu.d,
+	* testsuite/gas/rx/mvfachi.d, * testsuite/gas/rx/mvfaclo.d,
+	* testsuite/gas/rx/mvfacmi.d, * testsuite/gas/rx/mvfc.d,
+	* testsuite/gas/rx/mvfcp.d, * testsuite/gas/rx/mvfdc.d,
+	* testsuite/gas/rx/mvfdr.d, * testsuite/gas/rx/mvtacgu.d,
+	* testsuite/gas/rx/mvtachi.d, * testsuite/gas/rx/mvtaclo.d,
+	* testsuite/gas/rx/mvtc.d, * testsuite/gas/rx/mvtcp.d,
+	* testsuite/gas/rx/mvtdc.d, * testsuite/gas/rx/neg.d,
+	* testsuite/gas/rx/nop.d, * testsuite/gas/rx/not.d,
+	* testsuite/gas/rx/opecp.d, * testsuite/gas/rx/or.d,
+	* testsuite/gas/rx/pop.d, * testsuite/gas/rx/popc.d,
+	* testsuite/gas/rx/popm.d, * testsuite/gas/rx/push.d,
+	* testsuite/gas/rx/pushc.d, * testsuite/gas/rx/pushm.d,
+	* testsuite/gas/rx/r-bcc.d, * testsuite/gas/rx/r-bra.d,
+	* testsuite/gas/rx/racl.d, * testsuite/gas/rx/racw.d,
+	* testsuite/gas/rx/rdacl.d, * testsuite/gas/rx/rdacw.d,
+	* testsuite/gas/rx/revl.d, * testsuite/gas/rx/revw.d,
+	* testsuite/gas/rx/rmpa.d, * testsuite/gas/rx/rolc.d,
+	* testsuite/gas/rx/rorc.d, * testsuite/gas/rx/rotl.d,
+	* testsuite/gas/rx/rotr.d, * testsuite/gas/rx/round.d,
+	* testsuite/gas/rx/rstr.d, * testsuite/gas/rx/rte.d,
+	* testsuite/gas/rx/rtfi.d, * testsuite/gas/rx/rts.d,
+	* testsuite/gas/rx/rtsd.d, * testsuite/gas/rx/sat.d,
+	* testsuite/gas/rx/satr.d, * testsuite/gas/rx/save.d,
+	* testsuite/gas/rx/sbb.d, * testsuite/gas/rx/sccnd.d,
+	* testsuite/gas/rx/scmpu.d, * testsuite/gas/rx/setpsw.d,
+	* testsuite/gas/rx/shar.d, * testsuite/gas/rx/shll.d,
+	* testsuite/gas/rx/shlr.d, * testsuite/gas/rx/smovb.d,
+	* testsuite/gas/rx/smovf.d, * testsuite/gas/rx/smovu.d,
+	* testsuite/gas/rx/sstr.d, * testsuite/gas/rx/stnz.d,
+	* testsuite/gas/rx/stz.d, * testsuite/gas/rx/sub.d,
+	* testsuite/gas/rx/suntil.d, * testsuite/gas/rx/swhile.d,
+	* testsuite/gas/rx/tst.d, * testsuite/gas/rx/utof.d,
+	* testsuite/gas/rx/wait.d, * testsuite/gas/rx/xchg.d,
+	* testsuite/gas/rx/xor.d: Add #source line.
+
+2019-01-07  Kyrylo Tkachov  <kyrylo.tkachov@arm.com>
+
+	* config/tc-arm.c (arm_cpus): Add ares.
+	* doc/c-arm.texi (-mcpu): Document ares value.
+
+2019-01-05  Yoshinori Sato  <ysato@users.sourceforge.jp>
+
+	* config/rx-defs.h (rx_cpu_types): Add type RXV3 and RXV3FPU.
+	(rx_bfield): Add prototype.
+	(rx_post): Likewise.
+	* config/rx-parse.y: Add v3 instructions and Double FPU registers.
+	(DSIZE): Define.
+	(POST): Define.
+	(rx_check_v3): New. check v3 type.
+	(rx_check_dfpu): New. check have double support.
+	(double_condition_table): New. dcmp<cond> contiditon.
+	(check_condition): Multiple condition support.
+	(rx_lex): RXv3 instructions support.
+	Add parse dcmp<cond> instruction and Double FPU registers.
+	(immediate): Disable optimize in dmov #imm case.
+	(displacement): Add double displacement in dmov instraction.
+	* config/tc-rx.c (rx_use_conventional_section_names):
+	Invert default value in rx-*-linux target.
+	(cpu_type): Add additional ELF flags.
+	(cpu_type_list): Add RXv3.
+	(md_parse_option): Refer elf_flags from cpu_type_list.
+	(md_show_usage): Add rxv3 and rxv3-dfpu.
+	(rx_bytesT): Add post byte.
+	(rx_bfield): New. generate bfmov / bfmovz "imm" field.
+	(rx_post): New. Set instruction post byte.
+	(md_assemble): Add post byte.
+	doc/c-rx.texi: Add cpu types.
+	* testsuite/gas/rx/Xtod.d: New.
+	* testsuite/gas/rx/Xtod.sm: New.
+	* testsuite/gas/rx/bfmov.d: New.
+	* testsuite/gas/rx/bfmov.sm: New.
+	* testsuite/gas/rx/dabs.d: New.
+	* testsuite/gas/rx/dabs.sm: New.
+	* testsuite/gas/rx/dadd.d: New.
+	* testsuite/gas/rx/dadd.sm: New.
+	* testsuite/gas/rx/dcmp.d: New.
+	* testsuite/gas/rx/dcmp.sm: New.
+	* testsuite/gas/rx/ddiv.d: New.
+	* testsuite/gas/rx/ddiv.sm: New.
+	* testsuite/gas/rx/dmov.d: New.
+	* testsuite/gas/rx/dmov.sm: New.
+	* testsuite/gas/rx/dmul.d: New.
+	* testsuite/gas/rx/dmul.sm: New.
+	* testsuite/gas/rx/dneg.d: New.
+	* testsuite/gas/rx/dneg.sm: New.
+	* testsuite/gas/rx/dpopm.d: New.
+	* testsuite/gas/rx/dpopm.sm: New.
+	* testsuite/gas/rx/dpushm.d: New.
+	* testsuite/gas/rx/dpushm.sm: New.
+	* testsuite/gas/rx/dround.d: New.
+	* testsuite/gas/rx/dround.sm: New.
+	* testsuite/gas/rx/dsqrt.d: New.
+	* testsuite/gas/rx/dsqrt.sm: New.
+	* testsuite/gas/rx/dsub.d: New.
+	* testsuite/gas/rx/dsub.sm: New.
+	* testsuite/gas/rx/dtoX.d: New.
+	* testsuite/gas/rx/dtoX.sm: New.
+	* testsuite/gas/rx/macros.inc: Add double FPU registers.
+	* testsuite/gas/rx/mvfdc.d: New.
+	* testsuite/gas/rx/mvfdc.sm: New.
+	* testsuite/gas/rx/mvfdr.d: New.
+	* testsuite/gas/rx/mvfdr.sm: New.
+	* testsuite/gas/rx/mvtdc.d: New.
+	* testsuite/gas/rx/mvtdc.sm: New.
+	* testsuite/gas/rx/rstr.d: New.
+	* testsuite/gas/rx/rstr.sm: New.
+	* testsuite/gas/rx/rx.exp: Use rxv3-dfpu option.
+	* testsuite/gas/rx/save.d: New.
+	* testsuite/gas/rx/save.sm: New.
+	* testsuite/gas/rx/xor.d: New.
+	* testsuite/gas/rx/xor.sm: Add pattern.
+
+2019-01-04  Wu Heng  <wu.heng@zte.com.cn>
+
+	PR 24010
+	* macro.c (get_any_string): Check for end of input whilst scanning
+	for separators.
+
+2019-01-04  Wu Heng  <wu.heng@zte.com.cn>
+
+	PR 24009
+	* read.c (stringer): Fix handling of missing '>' character at end
+	of <...> sequence.
+
+2019-01-01  Alan Modra  <amodra@gmail.com>
+
+	Update year range in copyright notice of all files.
+
+For older changes see ChangeLog-2018
+
+Copyright (C) 2019 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+End:

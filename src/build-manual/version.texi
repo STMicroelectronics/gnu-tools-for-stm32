@@ -1,0 +1,4 @@
+@set VERSION_PACKAGE (GNU Tools for Arm Embedded Processors 9-2020-q2-update)
+@set CURRENT_YEAR  2020
+@set CURRENT_MONTH 05
+@set PKG_NAME gcc-arm-none-eabi-9-2020-q2-update

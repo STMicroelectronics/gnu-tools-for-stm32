@@ -1,0 +1,477 @@
+2020-04-21  Tamar Christina  <tamar.christina@arm.com>
+
+	Backport from mainline.
+	2020-04-21  Tamar Christina  <tamar.christina@arm.com>
+
+	PR binutils/24753
+	* compress.c (bfd_get_full_section_contents): Exclude sections with no
+	content.
+
+2020-04-08  Tamar Christina  <tamar.christina@arm.com>
+
+	Backport from mainline.
+	2020-04-01  Tamar Christina  <tamar.christina@arm.com>
+
+	PR ld/16017
+	* elf32-arm.c (elf32_arm_populate_plt_entry): Set LSB of the PLT0
+	address in the GOT if in thumb only mode.
+
+2020-04-08  Tamar Christina  <tamar.christina@arm.com>
+
+	Backport from mainline.
+	2020-04-01  Tamar Christina  <tamar.christina@arm.com>
+
+	* elf32-arm.c (elf32_thumb2_plt_entry): Fix PC-rel offset.
+
+2020-03-30  Alan Modra  <amodra@gmail.com>
+
+	PR 25745
+	* elf64-ppc.c (ppc64_elf_build_stubs): Use asprintf to form
+	statistics message.
+
+2020-03-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac (HAVE_EXECUTABLE_SUFFIX): Removed.
+	(EXECUTABLE_SUFFIX): Likewise.
+	* config.in: Regenerated.
+	* configure: Likewise.
+	* plugin.c (bfd_plugin_close_and_cleanup): Defined as
+	_bfd_generic_close_and_cleanup.
+	(plugin_list_entry): Remove resolution_file, resolution_option,
+	real_bfd, real_nsyms, real_syms, lto_nsyms, lto_syms, gcc,
+	lto_wrapper, gcc_env and initialized,
+	(need_lto_wrapper_p): Removed.
+	(get_lto_wrapper): Likewise.
+	(setup_lto_wrapper_env): Likewise.
+	(register_all_symbols_read): Likewise.
+	(egister_cleanup): Likewise.
+	(get_symbols): Likewise.
+	(add_input_file): Likewise.
+	(bfd_plugin_set_program_name): Remove need_lto_wrapper.
+	(add_symbols): Updated.
+	(try_claim): Likewise.
+	(try_load_plugin): Likewise.
+	(bfd_plugin_canonicalize_symtab): Likewise.
+	* plugin.h (bfd_plugin_set_program_name): Remove int argument.
+	(plugin_data_struct): Remove real_bfd, real_nsyms and
+	real_syms.
+
+2020-03-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/25640
+	* plugin.c (plugin_list_entry): Add has_symbol_type.
+	(add_symbols_v2): New function.
+	(bfd_plugin_open_input): Don't invoke LTO wrapper if LTO plugin
+	provides symbol type.
+	(try_load_plugin): Add LDPT_ADD_SYMBOLS_V2.
+	(bfd_plugin_canonicalize_symtab): Use LTO plugin symbol type if
+	available.
+
+2020-03-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/25717
+	* elf-bfd.h (elf_obj_tdata): Change num_group to unsigned int.
+
+2020-03-11  Alan Modra  <amodra@gmail.com>
+
+	* elf64-ppc.c (ppc64_elf_inline_plt): Do increment rel in for loop.
+
+2020-02-27  Alan Modra  <amodra@gmail.com>
+
+	PR 24511
+	* syms.c (bfd_decode_symclass): Reverse order of coff_section_type
+	and decode_section_type calls.
+
+2020-02-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/25584
+	* plugin.c (need_lto_wrapper_p): New.
+	(bfd_plugin_set_program_name): Add an int argument to set
+	need_lto_wrapper_p.
+	(get_lto_wrapper): Return FALSE if need_lto_wrapper_p isn't
+	set.
+	* plugin.h (bfd_plugin_set_program_name): Add an int argument.
+
+2020-02-22  Alan Modra  <amodra@gmail.com>
+
+	PR 25585
+	* elf.c (assign_file_positions_for_load_sections): Continue linking
+	on "PHDR segment not covered by LOAD segment" errors.
+
+2020-02-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/25355
+	* plugin.c (plugin_list_entry): Remove handle.
+	(try_load_plugin): Call dlclose before return.
+
+2020-02-14  Nick Clifton  <nickc@redhat.com>
+
+	Import from mainline:
+	2020-02-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* plugin.c (try_load_plugin): Make plugin_list_iter an argument
+	and use it if it isn't NULL.  Remove has_plugin_p argument.  Add
+	a build_list_p argument.  Don't search plugin_list.  Short circuit
+	when building the plugin list.
+	(has_plugin): Renamed to has_plugin_list.
+	(bfd_plugin_set_plugin): Don't set has_plugin.
+	(bfd_plugin_specified_p): Check plugin_list instead.
+	(build_plugin_list): New function.
+	(load_plugin): Call build_plugin_list and use plugin_list.
+
+	2020-02-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/25355
+	* plugin.c (try_claim): Always clean up for LTO wrapper.
+	(try_load_plugin): Treat each object as independent.  Create a
+	copy for plugin name.
+
+	2020-02-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* plugin.c (add_symbols): Clear plugin_data memory.
+
+	2020-02-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/25355
+	* configure.ac (HAVE_EXECUTABLE_SUFFIX): New AC_DEFINE.
+	(EXECUTABLE_SUFFIX): Likewise.
+	* config.in: Regenerated.
+	* configure: Likewise.
+	* plugin.c (bfd_plugin_close_and_cleanup): Removed.
+	(plugin_list_entry): Add all_symbols_read, cleanup_handler,
+	gcc, lto_wrapper, resolution_file, resolution_option, gcc_env,
+	real_bfd, real_nsyms, real_syms, lto_nsyms and lto_syms.
+	(get_lto_wrapper): New.
+	(setup_lto_wrapper_env): Likewise.
+	(current_plugin): Likewise.
+	(register_all_symbols_read): Likewise.
+	(register_cleanup): Likewise.
+	(get_symbols): Likewise.
+	(add_input_file): Likewise.
+	(bfd_plugin_close_and_cleanup): Likewise.
+	(claim_file): Removed.
+	(register_claim_file): Set current_plugin->claim_file.
+	(add_symbols): Make a copy of LTO symbols.  Set lto_nsyms and
+	lto_syms in current_plugin.
+	(try_claim): Use current_plugin->claim_file.  Call LTO plugin
+	all_symbols_read handler.  Copy real symbols to plugin_data.
+	Call LTO plugin cleanup handler.  Clean up for LTO wrapper.
+	(try_load_plugin): Don't reuse the previous plugin for LTO
+	wrapper.  Set up GCC LTO wrapper if possible.  Don't set
+	plugin_list_iter->claim_file.
+	(bfd_plugin_canonicalize_symtab): Use real LTO symbols if
+	possible.
+	* plugin.h (plugin_data_struct): Add real_bfd, real_nsyms and
+	real_syms.
+
+2020-02-11  Nick Clifton  <nickc@redhat.com>
+
+	Import from the mainline:
+
+	PR 25447
+	* coffgen.c (_bfd_coff_close_and_cleanup): Do not clear the keep
+	syms and keep strings flags as these may have been set in order to
+	prevent a bogus call to free.
+
+2020-02-11  Nick Clifton  <nickc@redhat.com>
+
+	Import from the mainline:
+
+	* elf32-msp430.c (msp430_final_link_relocate): Always use longs
+	for addresses in print statements.
+	(msp430_elf_relax_delete_bytes): Likewise.
+	(msp430_elf_relax_add_words): Likewise.
+	(msp430_elf_relax_section): Likewise.
+
+2020-02-10  Jozef Lawrynowicz  <jozef.l@mittosystems.com>
+
+	Apply from master
+	2020-02-10  Jozef Lawrynowicz  <jozef.l@mittosystems.com>
+	* elf32-msp430.c (msp430_final_link_relocate): Add printf statements for
+	debugging relocations.
+	(msp430_elf_relax_delete_bytes): Likewise.
+	(msp430_elf_relax_add_two_words): Likewise.
+	(msp430_elf_relax_section): Likewise.
+
+	2020-02-10  Jozef Lawrynowicz  <jozef.l@mittosystems.com>
+	* elf32-msp430.c (msp430_elf_relax_add_two_words): Rename to
+	msp430_elf_relax_add_words. Support insertion of either one or two
+	words.
+	(msp430_elf_relax_section): Catch opcode of 0x3c00 when relocation
+	needs to be grown. Handle insertion of branch instruction to replace
+	jump.
+
+	2020-02-10  Jozef Lawrynowicz  <jozef.l@mittosystems.com>
+
+	* elf32-msp430.c (msp430_elf_relax_section): Before relaxing a branch,
+	check if previous instruction matches a conditional jump inserted
+	earlier. Invert conditional jump and delete branch in this case.
+
+2020-02-01  Nick Clifton  <nickc@redhat.com>
+
+	* development.sh: Set development to true.
+	* version.m4: Set to 2.34.0.
+	* configure: Regenerate.
+
+2020-02-01  Nick Clifton  <nickc@redhat.com>
+
+	Binutils 2.34 release.
+	* development.sh: Set fields to false.
+	* version.m4: Set to 2.34.
+	* configure: Regenerate.
+
+2020-01-29  Alan Modra  <amodra@gmail.com>
+
+	Apply from master
+	2020-01-27  H.J. Lu  <hongjiu.lu@intel.com>
+		    Alan Modra  <amodra@gmail.com>
+	PR ld/25458
+	* elflink.c (_bfd_elf_gc_mark_rsec): Mark all weak aliases.
+
+	2020-01-23  Alan Modra  <amodra@gmail.com>
+	PR 25444
+	* elf.c (assign_file_positions_for_load_sections): Avoid divide
+	by zero when p_align is zero.
+
+	2020-01-22  Alan Modra  <amodra@gmail.com>
+	* elf64-ppc.c (ppc64_elf_size_stubs): Correct condition under
+	which __tls_get_addr calls will be eliminated.
+
+2020-01-23  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+
+2020-01-20  Nick Clifton  <nickc@redhat.com>
+
+	* po/pt.po: Updates Portuguese translation.
+	* po/ru.po: Updated Russian translation.
+	* po/uk.po: Updated Ukranian translation.
+
+2020-01-18  Nick Clifton  <nickc@redhat.com>
+
+	* version.m4 (BFD_VERSION): Set to 2.33.90.
+	* configure: Regenerate.
+	* po/bfd.pot: Regenerate.
+
+2020-01-18  Nick Clifton  <nickc@redhat.com>
+
+	Binutils 2.34 branch created.
+
+2020-01-17  Christian Biesinger  <cbiesinger@google.com>
+
+	* coff-arm.c: Fix spelling error (seperate).
+	* elfxx-riscv.c (riscv_parse_sv_or_non_std_ext): Fix spelling
+	error (seperate).
+	* sysdep.h (strnlen): Fix spelling error (seperate).
+
+2020-01-15  Lars Brinkhoff  <lars@nocrew.org>
+
+	PR 20694
+	* pdp11.c (TARGET_PAGE_SIZE): Set to 8192.
+
+2020-01-15  Alan Modra  <amodra@gmail.com>
+
+	PR 25384
+	* elf64-ppc.c (ELIMINATE_COPY_RELOCS): Update comment.
+	(ppc64_elf_adjust_dynamic_symbol): Don't allow .dynbss copies
+	of function symbols unless dot symbols are present.  Do warn
+	whenever one is created, regardles of whether a PLT entry is
+	also emitted for the function symbol.
+
+2020-01-14  Alan Modra  <amodra@gmail.com>
+
+	* som.c (som_bfd_count_ar_symbols): Error when file position
+	of symbols on chains is not strictly increasing.
+
+2020-01-14  Alan Modra  <amodra@gmail.com>
+
+	* vms.h (VMS_DEBUG): Define as 0.
+	* vms-alpha.c (image_write): Move debug output after bounds check.
+	Tidy bounds check.
+	(_bfd_vms_slurp_eihd): Warning fix.
+	(_bfd_vms_slurp_etir): Init variables to avoid bogus warnings.
+
+2020-01-13  Alan Modra  <amodra@gmail.com>
+
+	* vms-alpha.c (_bfd_vms_slurp_egsd): Ensure minimum size even
+	for "ignored" records.
+
+2020-01-13  Alan Modra  <amodra@gmail.com>
+
+	* wasm-module.c (wasm_scan_name_function_section): Formatting.
+	Delete asect name check.  Move asect NULL check to wasm_object_p.
+	Correct bounds check of sizes against end.  Replace uses of
+	bfd_zalloc with bfd_alloc, zeroing only necessary bytes.  Use
+	just one bfd_release.
+	(wasm_scan): Don't use malloc/strdup for section names,
+	bfd_alloc instead.  Simplify code prefixing section name.
+	Formatting.  Don't attempt to free memory here..
+	(wasm_object_p): ..do so here.
+
+2020-01-10  Szabolcs Nagy  <szabolcs.nagy@arm.com>
+
+	PR ld/22269
+	* elf32-arm.c (elf32_arm_final_link_relocate): Use
+	UNDEFWEAK_NO_DYNAMIC_RELOC.
+	(allocate_dynrelocs_for_symbol): Likewise.
+
+2020-01-10  Tamar Christina  <tamar.christina@arm.com>
+
+	PR 25210
+	* elfnn-aarch64.c (_bfd_aarch64_create_stub_section): Remove elfclass.
+
+2020-01-10  Alan Modra  <amodra@gmail.com>
+
+	* coff-alpha.c (alpha_ecoff_object_p): Calculate size in bfd_size_type.
+
+2020-01-09  Nick Clifton  <nickc@redhat.com>
+
+	PR 25221
+	* bfd.c (bfd_convert_section_contents): Check for a compress
+	header size that is larger than the actual section size.
+
+2020-01-08  Alan Modra  <amodra@gmail.com>
+
+	PR 25351
+	* elflink.c (bfd_elf_final_link): Call _bfd_fix_excluded_sec_syms
+	after removing sections.
+
+2020-01-06  Jim Wilson  <jimw@sifive.com>
+
+	PR 25205
+	* elfnn-riscv.c (riscv_elf_relocate_section) <R_RISCV_CALL>: Add
+	check for !bfd_link_pic (info).
+	<R_RISCV_CALL_PLT>: Move next to R_RISCV_CALL.
+	<R_RISCV_JAL>: Add comment.
+	(_bfd_riscv_relax_section): For plt.offset check, add check for
+	bfd_link_pic (info).  Add comment.
+
+2020-01-06  Alan Modra  <amodra@gmail.com>
+
+	* format.c (bfd_check_format_matches): Ignore bfd_error on target
+	match failures.  Don't init to bfd_error_wrong_format before
+	calling _bfd_check_format.
+
+2020-01-06  Alan Modra  <amodra@gmail.com>
+
+	* vms-alpha.c (_bfd_vms_push, _bfd_vms_pop): Return pass/fail
+	status rather than exiting on stack overflow or underflow.
+	(_bfd_vms_slurp_etir): Adjust to suit.
+
+2020-01-06  Alan Modra  <amodra@gmail.com>
+
+	* som.c (som_bfd_fill_in_ar_symbols): Bounds check som_dict index.
+
+2020-01-06  Alan Modra  <amodra@gmail.com>
+
+	* mach-o.c (bfd_mach_o_read_dylinker): Don't read past end of
+	command.  Check name offset is within command.
+	(bfd_mach_o_read_dylib, bfd_mach_o_read_prebound_dylib),
+	(bfd_mach_o_read_prebind_cksum, bfd_mach_o_read_twolevel_hints),
+	(bfd_mach_o_read_fvmlib, bfd_mach_o_read_dysymtab),
+	(bfd_mach_o_read_symtab, bfd_mach_o_read_uuid),
+	(bfd_mach_o_read_linkedit, bfd_mach_o_read_str),
+	(bfd_mach_o_read_dyld_info, bfd_mach_o_read_version_min),
+	(bfd_mach_o_read_encryption_info, bfd_mach_o_read_source_version),
+	(bfd_mach_o_read_encryption_info_64, bfd_mach_o_read_main),
+	(bfd_mach_o_read_note, bfd_mach_o_read_build_version),
+	(bfd_mach_o_read_segment): Similarly.
+	(bfd_mach_o_read_thread): Properly bound check thread struct.
+	Don't repeat checks on second loop.
+	(bfd_mach_o_read_command): Fail on invalid command length.
+
+2020-01-04  Alan Modra  <amodra@gmail.com>
+
+	* format.c (bfd_check_format_matches): Add preserve_match.
+	Save initial bfd state in "preserve", matched bfd state in
+	"preserve_match".  Save just the first match.  Release
+	bfd_alloc memory.  Restore and finish preserved state as
+	appropriate on all function exit paths.
+
+2020-01-04  Alan Modra  <amodra@gmail.com>
+
+	* mmo.c (mmo_mkobject): Allocate tdata with bfd_zalloc.
+
+2020-01-04  Alan Modra  <amodra@gmail.com>
+
+	* coffgen.c (coff_real_object_p): Free malloc'd memory on target
+	match too.
+
+2020-01-03  Nick Clifton  <nickc@redhat.com>
+
+	PR 25307
+	(bfd_pef_parse_function_stubs): Correct the test that ensures that
+	there is enough data remaining in the code buffer before
+	attempting to read a function stub.
+
+2020-01-03  Nick Clifton  <nickc@redhat.com>
+
+	PR 25308
+	* elf-properties.c (_bfd_elf_convert_gnu_properties): Check the
+	return value from bfd_malloc.
+	* elf32-arm.c (bfd_elf32_arm_vfp11_fix_veneer_locations): Likewise.
+	(bfd_elf32_arm_stm32l4xx_fix_veneer_locations): Likewise.
+	(elf32_arm_filter_cmse_symbols): Likewise.
+	(elf32_arm_write_section): Likewise.
+	* mach-o.c (bfd_mach_o_core_fetch_environment): Likewise.
+	(bfd_mach_o_follow_dsym): Likewise.
+	* pef.c (bfd_pef_print_loader_section): Likewise.
+	(bfd_pef_scan_start_address): Likewise.
+	(bfd_pef_parse_function_stubs): Likewise.
+	(bfd_pef_parse_symbols): Likewise.
+
+2020-01-03  Sergei Trofimovich  <siarheit@google.com>
+
+        * elfnn-ia64.c (elfNN_ia64_merge_private_bfd_data): don't fail
+        on binary inputs ld/PR25316.
+        (is_ia64_elf): new helper to filter on ia64 objects.
+
+2020-01-03  Jan Beulich  <jbeulich@suse.com>
+
+	* mach-o.c (cpusubtype, bfd_mach_o_header_p): Insert underscore
+	in parameter names.
+	(bfd_mach_o_scan): Insert underscore in two variable names.
+
+2020-01-02  Sergey Belyashov  <sergey.belyashov@gmail.com>
+
+	* Makefile.am: Add z80-elf target support.
+	* configure.ac: Likewise.
+	* targets.c: Likewise.
+	* Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* config.bfd: Add z80-elf target support and new arches: ez80 and
+	z180.
+	* elf32-z80.c: New file.
+	* archures.c: Add new z80 architectures: eZ80 and Z180.
+	* coffcode.h: Likewise.
+	* cpu-z80.c: Likewise.
+	* coff-z80.c: Add new relocations for Z80 target and local label
+	check.
+	* reloc.c: Add new relocs.
+	* bfd-in2.h: Regenerate.
+	* libbfd.h: Regenerate.
+
+2020-01-02  Tamar Christina  <tamar.christina@arm.com>
+
+	PR 25210
+	PR 24753
+	* elfnn-aarch64.c (_bfd_aarch64_create_stub_section): Set ELF class.
+
+2020-01-01  Alan Modra  <amodra@gmail.com>
+
+	Update year range in copyright notice of all files.
+
+For older changes see ChangeLog-2019
+
+Copyright (C) 2020 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+End:

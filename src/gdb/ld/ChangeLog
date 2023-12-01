@@ -1,0 +1,198 @@
+2019-02-20  Eric Tsai  <erictsai@cadence.com>
+
+	* testsuite/ld-xtensa/call_overflow.d: New test definition.
+	* testsuite/ld-xtensa/call_overflow1.s: New test source.
+	* testsuite/ld-xtensa/call_overflow2.s: New test source.
+	* testsuite/ld-xtensa/call_overflow3.s: New test source.
+	* testsuite/ld-xtensa/xtensa.exp: Add call_overflow test.
+
+2019-02-14  Thomas Schwinge  <thomas@codesourcery.com>
+
+	* testsuite/ld-elf/elf.exp: Remove Hurd XFAILs.
+
+2019-02-12  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+
+2019-02-09  Vineet Gupta  <vgupta@synopsys.com>
+
+	* emultempl/arclinux.em: Delete special INIT/FINI handling.
+
+2019-02-07  Nick Clifton  <nickc@redhat.com>
+
+	PR 24175
+	* ld.texi (Options): Add missing word to the description of the
+	--start-group option.
+
+2019-02-06  Alan Modra  <amodra@gmail.com>
+
+	PR ld/24008
+	* testsuite/ld-scripts/pr24008.d: Pass with extra target
+	defined symbols.
+
+2019-02-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/24151
+	* testsuite/ld-x86-64/pr24151a-x32.d: New file.
+	* testsuite/ld-x86-64/pr24151a.d: Likewise.
+	* testsuite/ld-x86-64/pr24151a.s: Likewise.
+	* testsuite/ld-x86-64/x86-64.exp: Run pr24151a and pr24151a-x32.
+
+2019-01-31  Alan Modra  <amodra@gmail.com>
+
+	* NEWS: Mention -t change.
+	* ld.texi (--trace/-t): Expand documentation a little.
+
+2019-01-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/24008
+	* testsuite/ld-scripts/defined.exp: Run pr24008.
+	* testsuite/ld-scripts/pr24008.d: New file.
+	* testsuite/ld-scripts/pr24008.map: Likewise.
+	* testsuite/ld-scripts/pr24008.s: Likewise.
+	* testsuite/ld-scripts/pr24008.t: Likewise.
+
+2019-01-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* testsuite/ld-ifunc/ifunc.exp: Skip pr23169 on SPARC.
+
+2019-01-28  Alan Modra  <amodra@gmail.com>
+
+	PR 24008
+	* ldexp.h (lang_phase_type): Add lang_fixed_phase_enum.
+	* ldexp.c (fold_name): Move expld.assign_name check later to
+	avoid an extra lookup.
+	(exp_fold_tree_1): When lang_fixed_phase_enum, don't change symbol
+	values, and don't clear expld.assign_name.
+	* ldlang.c (lang_map): Set expld.phase to lang_fixed_phase_enum.
+	(print_assignment): Resolve entire assignment expression.
+	Don't access symbol u.def unless symbol is defined.
+
+2019-01-25  Nick Clifton  <nickc@redhat.com>
+
+	* po/bg.po: Updated Bulgarian translation.
+
+2019-01-23  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	* ld.texi (--wrap): Add warning that LTO may make this feature
+	ineffective.
+
+2019-01-21  Nick Clifton  <nickc@redhat.com>
+
+	* po/uk.po: Updated Ukranian translation.
+	* po/pr_BR.po: Updated Brazilian Portuguese translation.
+
+2019-01-21  Nick Clifton  <nickc@redhat.com>
+
+	PR 24108
+	* testsuite/ld-riscv-elf/attr-merge-arch-failed-01.d: Update
+	expected error message.
+
+2019-01-19  Nick Clifton  <nickc@redhat.com>
+
+	* configure: Regenerate.
+	* po/ld.pot: Regenerate.
+
+2018-06-24  Nick Clifton  <nickc@redhat.com>
+
+	2.32 branch created.
+
+2019-01-16  Kito Cheng  <kito@andestech.com>
+
+	* testsuite/ld-elf/orphan-region.d: XFAIL for RISC-V, because add new
+	section.
+	* testsuite/ld-riscv-elf/ld-riscv-elf.exp: Add new tests.
+	* testsuite/ld-riscv-elf/attr-merge-arch-01.d: New test.
+	* testsuite/ld-riscv-elf/attr-merge-arch-01a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-01b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-02.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-02a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-02b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-03.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-03a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-03b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-failed-01.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-failed-01a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-arch-failed-01b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-priv-spec-a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-priv-spec-b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-priv-spec.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-stack-align-a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-stack-align-b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-stack-align-failed-a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-stack-align-failed-b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-stack-align-failed.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-stack-align.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-01.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-01a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-01b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-02.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-02a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-02b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-03.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-03a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-03b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-04.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-04a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-04b.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-05.d: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-05a.s: Likewise.
+	* testsuite/ld-riscv-elf/attr-merge-strict-align-05b.s: Likewise.
+
+2019-01-14  Maamoun Tarsha  <maamountk@hotmail.com>
+
+	PR 20113
+	* emulparams/elf64_s390.sh (SEPARATE_GOTPLT): Define.
+	* emulparams/elf_s390.sh (SEPARATE_GOTPLT): Define.
+	* testsuite/ld-s390/gotreloc_31-1.dd: Update expected output.
+	* testsuite/ld-s390/tlsbin.dd: Likewise.
+	* testsuite/ld-s390/tlsbin.rd: Likewise.
+	* testsuite/ld-s390/tlsbin.sd: Likewise.
+	* testsuite/ld-s390/tlsbin_64.dd: Likewise.
+	* testsuite/ld-s390/tlsbin_64.rd: Likewise.
+	* testsuite/ld-s390/tlsbin_64.sd: Likewise.
+	* testsuite/ld-s390/tlspic.dd: Likewise.
+	* testsuite/ld-s390/tlspic.rd: Likewise.
+	* testsuite/ld-s390/tlspic.sd: Likewise.
+	* testsuite/ld-s390/tlspic_64.dd: Likewise.
+	* testsuite/ld-s390/tlspic_64.rd: Likewise.
+	* testsuite/ld-s390/tlspic_64.sd: Likewise.
+	* testsuite/ld-s390/s390.exp: Skip s390 tests for tpf targets.
+
+2019-01-14  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	* ld.texi (--wrap): Add example to emphasise that only undefined
+	references are replaced by the linker.
+
+2019-01-09  Nick Clifton  <nickc@redhat.com>
+
+	* po/es.po: Updated Spanish translation.
+
+2019-01-09  Andrew Paprocki  <andrew@ishiboo.com>
+
+	* configure: Regenerate.
+
+2019-01-08  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-elf/sec64k.exp: Use . rather than $objdir in
+	generated source file names.
+	* testsuite/ld-m68k/m68k-got.exp: Likewise.
+
+2019-01-01  Alan Modra  <amodra@gmail.com>
+
+	Update year range in copyright notice of all files.
+
+For older changes see ChangeLog-2018
+
+Copyright (C) 2019 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+End:

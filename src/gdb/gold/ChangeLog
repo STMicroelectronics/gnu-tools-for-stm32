@@ -1,0 +1,49 @@
+2019-02-19  Egeyar Bagcioglu  <egeyar.bagcioglu@oracle.com>
+
+     PR gold/23870
+     * aarch64.cc (Target_aarch64::Scan::global): Check if a symbol with
+     R_AARCH64_MOVW_.ABS_* relocations requires a PLT entry.
+     * testsuite/Makefile.am: Add aarch64_pr23870 test case.
+     * testsuite/Makefile.in: Regenerate.
+     * testsuite/aarch64_pr23870_bar.c: New file.
+     * testsuite/aarch64_pr23870_foo.c: New file.
+     * testsuite/aarch64_pr23870_main.S: New file.
+
+2019-02-12  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+
+2019-01-21  Nick Clifton  <nickc@redhat.com>
+
+	* po/uk.po: Updated Ukranian translation.
+
+2019-01-19  Nick Clifton  <nickc@redhat.com>
+
+	* po/gold.pot: Regenerate.
+
+2018-06-24  Nick Clifton  <nickc@redhat.com>
+
+	2.32 branch created.
+
+2019-01-09  Andrew Paprocki  <andrew@ishiboo.com>
+
+	* configure: Regenerate.
+
+2019-01-01  Alan Modra  <amodra@gmail.com>
+
+	Update year range in copyright notice of all files.
+
+For older changes see ChangeLog-2018
+
+Copyright (C) 2019 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+End:

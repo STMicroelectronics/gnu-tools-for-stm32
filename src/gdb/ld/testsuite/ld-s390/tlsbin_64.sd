@@ -1,0 +1,17 @@
+#source: tlsbinpic_64.s
+#source: tlsbin_64.s
+#as: -m64 -Aesame
+#ld: -shared -melf64_s390
+#objdump: -sj.got
+#target: s390x-*-*
+
+.*:     file format elf64-s390
+
+Contents of section .got:
+ [0-9a-f]+ ........ ........ 00000000 00000000  .*
+ [0-9a-f]+ 00000000 00000000 ........ ........  .*
+ [0-9a-f]+ ffffffff ffffff.8 00000000 00000000  .*
+ [0-9a-f]+ 00000000 00000000 ........ ........  .*
+ [0-9a-f]+ ........ ........ ........ ........  .*
+ [0-9a-f]+ 00000000 00000000 .*
+#...
