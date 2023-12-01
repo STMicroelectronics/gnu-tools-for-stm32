@@ -1,0 +1,376 @@
+\input texinfo @c -*-texinfo-*-
+@c %**start of header
+@c makeinfo and texinfo.tex ignore all text before @setfilename.
+@c
+@c Ordinarily, the setfilename argument ends with .info.  But
+@c texinfo.info-13 is too long for 14-character filesystems.
+@setfilename how-to-build-toolchain.info
+@include version.texi
+@settitle How To Build Toolchain
+@paragraphindent asis
+@c %**end of header
+
+@copying
+Copyright @copyright{} 2012-@value{CURRENT_YEAR} ARM Ltd.
+@end copying
+
+@finalout
+@smallbook
+
+@titlepage
+@title The Build Process
+@subtitle of @value{VERSION_PACKAGE}
+@subtitle @value{CURRENT_YEAR}-@value{CURRENT_MONTH}
+
+@c The following two commands start the copyright page
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@c Output the table of contents at the beginning.
+@contents
+
+@ifnottex
+@node Top
+@top How To Build Toolchain
+
+@insertcopying
+@end ifnottex
+
+@node Preface
+@unnumbered Preface
+This manual provides a step-by-step guide to help you build
+@samp{GNU Arm Embedded Toolchain} on a newly installed
+Ubuntu 16.04 LTS 64-bit operating system.
+
+@noindent
+Note that the steps below may most likely also work on an Ubuntu which is
+not newly installed or version other than 16.04 LTS, but it is not guaranteed.
+In this case please go through @ref{Known Issues} before you go, and
+you need to solve any other problems you may encounter by yourself.  We
+highly appreciate if you could share the problems and solutions with us.
+
+@node Ubuntu
+@chapter Build GNU Tools for Linux and Windows Platforms
+
+@node Install Ubuntu
+@section Install Ubuntu
+@c Use '@/' to allow break inside a URL
+Ubuntu 16.04.7 ISO image is available from
+@uref{http://releases.ubuntu.com@//16.04@//ubuntu-16.04.7-desktop-amd64.iso}.
+You can install it as a native system or a virtual machine.
+
+@page
+@node Install Dependencies
+@section Install Dependencies
+
+@node Install dependencies available in Ubuntu's repositories
+@subsection Install dependencies available in Ubuntu's repositories
+
+Execute the commands in this section to install the tools needed to build the
+toolchain.  Lines starting with '$' denote commands that need to be input as is
+while lines starting with '#' are comments and as such do not need to be typed
+in.
+
+@noindent
+Please note that the "Ignoring Provides line" and "unknown Multi-Arch type"
+warnings when executing @code{apt-get update} are harmless and can thus safely
+be ignored.  Similarly, the warning about @code{update-alternatives} skipping
+the creation of symbolic links when executing @code{apt-get install} is also
+harmless and can therefore safely be ignored.@*
+
+@sp 1
+Start root session:
+@smallexample
+$ sudo su
+@end smallexample
+
+@sp 1
+Enable use of 32bit packages:
+@smallexample
+$ dpkg --add-architecture i386
+@end smallexample
+
+@sp 1
+Add extra repositories to be used by apt:
+@smallexample
+$ apt-get update
+$ apt-get install software-properties-common
+$ add-apt-repository universe
+$ cat >/etc/apt/sources.list.d/xenial.list <<EOF
+deb http://archive.ubuntu.com/ubuntu xenial main universe
+deb-src http://archive.ubuntu.com/ubuntu xenial main universe
+deb http://security.ubuntu.com/ubuntu xenial-security main
+EOF
+@end smallexample
+
+@sp 1
+Ensure package for Ubuntu Xenial are chosen by default:
+@smallexample
+$ echo 'APT::Default-Release "xenial";' > /etc/apt/apt.conf.d/00default
+@end smallexample
+
+@sp 1
+Install packages:
+@smallexample
+$ apt-get install -y -t xenial \
+    gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686
+
+$ apt-get -f install -y \
+    build-essential autoconf autogen bison dejagnu flex flip \
+    gawk git gperf gzip nsis openssh-client p7zip-full perl \
+    python-dev libisl-dev scons tcl texinfo tofrodos wget zip \
+    texlive texlive-extra-utils libncurses5-dev
+@end smallexample
+
+@sp 1
+End root session:
+@smallexample
+$ exit
+@end smallexample
+
+@page
+@node Build GNU Arm Embedded Toolchain
+@section Build GNU Arm Embedded Toolchain
+
+@noindent
+You are now ready to build the toolchain. Just follow the below instructions,
+substituting @code{~/toolchain} by the directory in which you wish to build
+the toolchain. Note that if you are not interested in the Windows toolchain,
+you can speed up the build by passing the option @code{--skip_steps=mingw32}
+to @strong{all} of install-sources.sh, build-prerequisites.sh and
+build-toolchain.sh.
+
+@smallexample
+@group
+@set txicodequoteundirected
+# Create a directory in which to build the toolchain and copy the source
+# release package into it.
+$ mkdir ~/toolchain
+$ cp @value{PKG_NAME}-src.tar.bz2 ~/toolchain
+
+# Untar the source tarball.
+$ cd ~/toolchain
+$ tar -xjf @value{PKG_NAME}-src.tar.bz2
+$ cd ./@value{PKG_NAME}
+$ ./install-sources.sh
+
+# Build the toolchain(s).
+$ ./build-prerequisites.sh
+$ ./build-toolchain.sh
+
+@clear txicodequoteundirected
+@end group
+@end smallexample
+
+@noindent
+Once the build completes you can find the binary and source tarballs in
+ @* @samp{~/toolchain/@value{PKG_NAME}/pkg}
+along with the md5 checksum.
+
+@node Mac
+@chapter Build GNU Tools on Mac OS X
+In addition to the build on Ubuntu, the build scripts in same source
+package can also be used on Mac OS X to build native toolchain
+whose host is Mac OS X and target is arm-none-eabi.
+@sp 1
+In this step we will describe how to install required software components
+and how to execute the build scripts. After this step you should be able to
+generate a same toolchain with the one released.
+@sp 1
+Due to resource limitation, this build process is only tested against:
+@itemize @bullet
+@item
+macOS Mojave 10.14.6
+@item
+macOS Catalina 10.15.4
+@end itemize
+
+@node Prepare a Mac OS X environment
+@section Prepare a Mac OS X environment
+The hardware should be an x86-based Apple Mac family machine. The installed
+host OS should be Mac OS X which is updated to 10.14.6 or newer. The way to
+find out the Mac OS X version information is to click the @strong{Apple}
+menu and choose @strong{About This Mac} or use command line:
+
+@sp 1
+@smallexample
+$ sw_vers -productVersion
+@end smallexample
+
+@sp 1
+@center @image{macos_mojave_about,,,,.png}
+
+@page
+@noindent
+For the environment we are using, it looks as below:
+
+@sp 1
+@center @image{macos_mojave,,,,.png}
+
+@node Install the Command Line Tools for Xcode
+@section Install the Command Line Tools for Xcode
+You can install this package with command:
+
+@sp 1
+@smallexample
+$ xcode-select --install
+@end smallexample
+
+@sp 1
+If above led to the error please visit:
+@sp 1
+@uref{https://developer.apple.com/download/more/}
+@sp 1
+to download e.g. Command Line Tools for Xcode 11.5 directly from Apple webpage.
+You will be asked to login with your Apple ID.
+
+@node Using Bash on Mac OS X
+@section Using Bash on Mac OS X
+Please note that this step is optional. We suggest you to use Bash 5 when
+executing toolchain Bash build scripts. We are currently using Bash:
+@sp 1
+@smallexample
+$ bash --version
+GNU bash, version 5.0.16(1)-release (x86_64-apple-darwin18.7.0)
+@end smallexample
+@sp 1
+We recommend to use homebrew to install the latest version of Bash:
+@sp 1
+@smallexample
+$ brew install bash
+@end smallexample
+
+@node Build Texinfo a GNU Documentation System
+@section Build Texinfo a GNU Documentation System
+Texinfo is the official documentation format of the GNU project. Texinfo
+produce output in a number of formats, both online and printed. These formats
+include: dvi, html, info, pdf, xml, etc.
+This package is needed to build both manual and How-to PDF document.
+Note: you can skip building of manual and How-to PDF document with
+@samp{--skip_steps=howto,manual} command line option for
+@samp{build-toolchain.sh} build script.
+
+@sp 1
+Fetch Texinfo 6.5 sources:
+@smallexample
+$ cd /tmp
+$ curl -OL https://ftp.gnu.org/gnu/texinfo/texinfo-6.5.tar.xz
+$ tar xf texinfo-6.5.tar.xz
+$ cd texinfo-6.5/
+
+# For this example we will install Texinfo binaries in arbitrary /tmp/texinfo
+# directory
+$ mkdir /tmp/texinfo
+$ ./configure --prefix=/tmp/texinfo
+$ make
+$ make install
+@end smallexample
+
+@sp 1
+Add Texinfo 6.5 installation directory  to the system PATH.
+@smallexample
+$ export PATH=/tmp/texinfo/bin:$PATH
+@end smallexample
+
+@node Install MacTeX to build PDF format documents
+@section Install MacTeX to build PDF format documents
+This is an optional step and can be skipped if PDF format documents aren't
+needed.  The build process will use TeX engineer provided by MacTeX-2012 to
+generate PDF format documents.  This component can be freely obtained from
+its official FTP server
+@uref{ftp://ftp.tug.org/historic/systems/mactex/2012/MacTeX.pkg}.
+Its original size is approximately 2.1G.  Once downloaded, just double click
+on the @samp{MacTeX.pkg} file and follow the instructions to install it.  By
+default the related TeX executable files won't be installed into the default
+path like @samp{/usr/bin}, so the Terminal need to be restarted before running
+the build scripts.
+@sp 1
+Note: It is possible to install MacTeX with homebrew using Homebrew Cask via:
+@sp 1
+@smallexample
+@set txicodequoteundirected
+$ brew install Caskroom/cask/mactex
+@clear txicodequoteundirected
+@end smallexample
+@sp 1
+If you would like to install MacText without the GUI, you can:
+@sp 1
+@smallexample
+@set txicodequoteundirected
+$ brew install Caskroom/cask/mactex-no-gui
+@clear txicodequoteundirected
+@end smallexample
+
+@node Build the toolchain under Mac OS X
+@section Build the toolchain under Mac OS X
+With all the dependent packages installed, we can start to build the native
+toolchain on Mac OS. Following are the commands and steps we are using:
+
+@smallexample
+@set txicodequoteundirected
+
+# Copy the src release package into ~/mac-build/ directory
+$ cp @value{PKG_NAME}-src.tar.bz2 ~/mac-build
+
+# Prepare source codes
+$ cd ~/mac-build
+$ tar xjf @value{PKG_NAME}-src.tar.bz2
+$ cd ./@value{PKG_NAME}
+$ ./install-sources.sh
+
+# Start building the toolchain.
+$ ./build-prerequisites.sh
+$ ./build-toolchain.sh
+
+@clear txicodequoteundirected
+@end smallexample
+
+@sp 1
+When build is completed you will find toolchain binaries, sources and MD5
+checksum files under pkg/ directory, see:
+@smallexample
+@set txicodequoteundirecte
+~/mac-build/@value{PKG_NAME}/pkg $ ls -l
+@value{PKG_NAME}-mac-10.15.4.tar.bz2
+@value{PKG_NAME}-src.tar.bz2
+md5-x86_64-darwin.txt
+@clear txicodequoteundirected
+@end smallexample
+
+@node Known Issues
+@appendix Known Issues
+
+@itemize @bullet
+@item
+If you are using different build environment and tools, you might run
+into a problem where binutils can not be successfully built.  This is
+probably caused by binutils bug 13036.
+For more information, please refer to 
+@uref{http://sourceware.org/bugzilla/show_bug.cgi?id=13036}.
+
+@item
+Some shell scripts in gcc and other packages are incompatible with
+the dash shell, which is the default /bin/sh for Ubuntu 16.04 LTS.
+You must make /bin/sh a symbolic link to one of the supported shells:
+saying bash.  Here on Ubuntu 16.04 LTS system, this can be done by
+running following command:
+
+@sp 1
+@smallexample
+$ sudo dpkg-reconfigure -plow dash
+@end smallexample
+
+@sp 1
+Then choose @samp{No} in the @samp{Configuring dash} popup dialog and
+press enter.  You can run following command and check that /bin/sh
+points to @samp{bash}:
+
+@sp 1
+@smallexample
+$ ls -l /bin/sh
+...... /bin/sh -> bash
+@end smallexample
+@end itemize
+@bye

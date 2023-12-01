@@ -1,0 +1,206 @@
+2021-01-08  Tom Tromey  <tromey@adacore.com>
+
+	* parse.c (parse_expression): Add void_context_p parameter.  Use
+	parse_exp_in_context.
+	* printcmd.c (print_command_1): Change voidprint to bool.  Pass to
+	parse_expression.
+	(print_command, call_command): Update.
+	* expression.h (parse_expression): Add void_context_p parameter.
+
+2021-01-08  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* value.c (set_value_component_location): Adjust the VALUE_LVAL
+	for internalvar components that have a dynamic location.
+
+2021-01-08  Tom de Vries  <tdevries@suse.de>
+
+	PR gdb/26881
+	* breakpoint.c (create_exception_master_breakpoint_probe)
+	(create_exception_master_breakpoint_hook): Factor out
+	of ...
+	(create_exception_master_breakpoint): ... here.  Only try to install
+	the master exception breakpoint in objfile.debug using the
+	_Unwind_DebugHook method, if the install using probes in objfile
+	failed.
+
+2021-01-08  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* f-lang.c (fortran_value_subarray): Call value_from_component.
+
+2021-01-07  Mike Frysinger  <vapier@gentoo.org>
+
+	* remote-sim.c: Include memory-map.h.
+	(gdbsim_target): Define memory_map override.
+	(gdbsim_target::memory_map): Define.
+
+2021-01-07  Tom Tromey  <tromey@adacore.com>
+
+	* ada-lang.c (do_full_match): Conditionally skip "_ada_" prefix.
+
+2021-01-07  Tom Tromey  <tromey@adacore.com>
+
+	* ada-lang.c (add_component_interval): Start loop using vector's
+	updated size.
+
+2021-01-06  Tom Tromey  <tromey@adacore.com>
+
+	* ada-lang.c (ada_evaluate_subexp) <BINOP_ADD, BINOP_SUB>:
+	Do not cast result.
+	* valarith.c (fixed_point_binop): Handle multiplication
+	and division specially.
+	* valops.c (value_to_gdb_mpq): New function.
+	(value_cast_to_fixed_point): Use it.
+
+2021-01-05  Hannes Domani  <ssbssa@yahoo.de>
+
+	* tui/tui-winsource.c (tui_source_window_base::refresh_window):
+	Call wnoutrefresh instead of tui_win_info::refresh_window.
+
+2021-01-05  Hannes Domani  <ssbssa@yahoo.de>
+
+	* tui/tui-source.c (tui_source_window::show_line_number):
+	Redraw second space after line number.
+
+2021-01-05  Hannes Domani  <ssbssa@yahoo.de>
+
+	PR tui/26927
+	* tui/tui-winsource.c (tui_source_window_base::refresh_window):
+	Fix source pad size in prefresh.
+	(tui_source_window_base::show_source_content): Grow source pad
+	if necessary.
+
+2021-01-04  Mike Frysinger  <vapier@gentoo.org>
+
+	* bfin-tdep.c (bfin_push_dummy_call): Use align_up.
+	(bfin_frame_align): Use align_down.
+
+2021-01-04  Tom de Vries  <tdevries@suse.de>
+
+	* buildsym.c (buildsym_compunit::record_line): Filter out end-of-seq
+	terminators that do not terminate anything.
+
+2021-01-04  Simon Marchi  <simon.marchi@efficios.com>
+
+	* debug.c (debug_print_depth): New.
+	* infrun.h (INFRUN_SCOPED_DEBUG_START_END): New.
+	(INFRUN_SCOPED_DEBUG_ENTER_EXIT): New.
+	* infrun.c (start_step_over): Use
+	INFRUN_SCOPED_DEBUG_ENTER_EXIT.
+	(proceed): Use INFRUN_SCOPED_DEBUG_ENTER_EXIT and
+	INFRUN_SCOPED_DEBUG_START_END.
+	(fetch_inferior_event): Use INFRUN_SCOPED_DEBUG_ENTER_EXIT.
+
+2021-01-04  Simon Marchi  <simon.marchi@efficios.com>
+
+	* infrun.c (print_target_wait_results): Use infrun_debug_printf.
+
+2021-01-04  Simon Marchi  <simon.marchi@efficios.com>
+
+	* utils.c (vfprintf_unfiltered): Print timestamp only when
+	previous debug output ended with a newline.
+
+2021-01-04  Luis Machado  <luis.machado@linaro.org>
+
+	Update all users of trad_frame_saved_reg to use the new member
+	functions.
+
+	Remote all struct keywords from declarations of trad_frame_saved_reg
+	types, except on forward declarations.
+
+	* aarch64-tdep.c: Update.
+	* alpha-mdebug-tdep.c: Update.
+	* alpha-tdep.c: Update.
+	* arc-tdep.c: Update.
+	* arm-tdep.c: Update.
+	* avr-tdep.c: Update.
+	* cris-tdep.c: Update.
+	* csky-tdep.c: Update.
+	* frv-tdep.c: Update.
+	* hppa-linux-tdep.c: Update.
+	* hppa-tdep.c: Update.
+	* hppa-tdep.h: Update.
+	* lm32-tdep.c: Update.
+	* m32r-linux-tdep.c: Update.
+	* m32r-tdep.c: Update.
+	* m68hc11-tdep.c: Update.
+	* mips-tdep.c: Update.
+	* moxie-tdep.c: Update.
+	* riscv-tdep.c: Update.
+	* rs6000-tdep.c: Update.
+	* s390-linux-tdep.c: Update.
+	* s390-tdep.c: Update.
+	* score-tdep.c: Update.
+	* sparc-netbsd-tdep.c: Update.
+	* sparc-sol2-tdep.c: Update.
+	* sparc64-fbsd-tdep.c: Update.
+	* sparc64-netbsd-tdep.c: Update.
+	* sparc64-obsd-tdep.c: Update.
+	* sparc64-sol2-tdep.c: Update.
+	* tilegx-tdep.c: Update.
+	* v850-tdep.c: Update.
+	* vax-tdep.c: Update.
+
+	* frame-unwind.c (frame_unwind_got_bytes): Make parameter const.
+	* frame-unwind.h (frame_unwind_got_bytes): Likewise.
+
+	* trad-frame.c: Update.
+	Remove TF_REG_* enum.
+	(trad_frame_alloc_saved_regs): Add a static assertion to check for
+	a trivially-constructible struct.
+	(trad_frame_reset_saved_regs): Adjust to use member function.
+	(trad_frame_value_p): Likewise.
+	(trad_frame_addr_p): Likewise.
+	(trad_frame_realreg_p): Likewise.
+	(trad_frame_value_bytes_p): Likewise.
+	(trad_frame_set_value): Likewise.
+	(trad_frame_set_realreg): Likewise.
+	(trad_frame_set_addr): Likewise.
+	(trad_frame_set_unknown): Likewise.
+	(trad_frame_set_value_bytes): Likewise.
+	(trad_frame_get_prev_register): Likewise.
+	* trad-frame.h: Update.
+	(trad_frame_saved_reg_kind): New enum.
+	(struct trad_frame_saved_reg) <addr, realreg, data>: Remove.
+	<m_kind, m_reg>: New member fields.
+	<set_value, set_realreg, set_addr, set_unknown, set_value_bytes>
+	<kind, value, realreg, addr, value_bytes, is_value, is_realreg>
+	<is_addr, is_unknown, is_value_bytes>: New member functions.
+
+2021-01-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* target-float.c: Fix typos.
+
+2021-01-02  Hannes Domani  <ssbssa@yahoo.de>
+
+	* gdb-gdb.py.in: Fix main_type.flds_bnds.bounds pretty printer.
+
+2021-01-01  Joel Brobecker  <brobecker@adacore.com>
+
+	* gdbarch.sh: Update copyright year range.
+
+2021-01-01  Joel Brobecker  <brobecker@adacore.com>
+
+	Update copyright year range in copyright header of all GDB files.
+
+2021-01-01  Joel Brobecker  <brobecker@adacore.com>
+
+	* copyright.py (get_update_list): Add "gdbserver" and "gdbsupport"
+	to the list of directories to update.
+
+2021-01-01  Joel Brobecker  <brobecker@adacore.com>
+
+	* top.c (print_gdb_version): Update copyright year.
+
+2021-01-01  Joel Brobecker  <brobecker@adacore.com>
+
+	* config/djgpp/fnchange.lst: Add entry for gdb/ChangeLog-2020.
+
+For older changes see ChangeLog-2020.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+coding: utf-8
+End:

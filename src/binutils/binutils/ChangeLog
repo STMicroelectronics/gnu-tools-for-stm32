@@ -1,0 +1,162 @@
+2021-04-15  Alan Modra  <amodra@gmail.com>
+
+	PR 27456
+	* rename.c (smart_rename): When TO and FROM are equal, just set
+	file timestamp.
+	* objcopy.c (strip_main, copy_main): Always call smart_rename.
+
+2021-02-26  Alan Modra  <amodra@gmail.com>
+
+	Backport from mainline
+	2021-02-25  Alan Modra  <amodra@gmail.com>
+	PR 27456
+	* rename.c (simple_copy): Mark target_stat ATTRIBUTE_UNUSED.
+
+	2021-02-24  Alan Modra  <amodra@gmail.com>
+		    Siddhesh Poyarekar  <siddhesh@gotplt.org>
+	PR 27456
+	* bucomm.h (smart_rename): Update prototype.
+	* rename.c (smart_rename): Add fromfd and preserve_dates params.
+	Pass fromfd and target_stat to simple_copy.  Call set_times
+	when preserve_dates.
+	(simple_copy): Accept fromfd rather than from filename.  Add
+	target_stat param.  Rewind fromfd rather than opening.  Open
+	"to" file without O_CREAT.  Try to preserve S_ISUID and S_ISGID.
+	* ar.c (write_archive): Rename ofd to tmpfd.  Dup tmpfd before
+	closing output temp file, and pass tmpfd to smart_rename.
+	* arsup.c (temp_fd): Rename from real_fd.
+	(ar_save): Dup temp_fd and pass to smart_rename.
+	* objcopy.c (strip_main, copy_main): Likewise, and pass
+	preserve_dates.
+
+	2021-02-24  Alan Modra  <amodra@gmail.com>
+	PR 27456
+	* rename.c: Tidy throughout.
+	(smart_rename): Always copy.  Remove windows specific code.
+
+	2021-02-03  Alan Modra  <amodra@gmail.com>
+	PR 26945
+	* ar.c: Don't include libbfd.h.
+	(write_archive): Replace xmalloc+strcpy with xstrdup.
+	* arsup.c (temp_name, real_ofd): New static variables.
+	(ar_open): Use make_tempname and bfd_fdopenw.
+	(ar_save): Adjust to suit ar_open changes.
+	* objcopy.c: Don't include libbfd.h.
+	* rename.c: Rename and reorder variables.
+
+2021-02-22  Siddhesh Poyarekar  <siddhesh@gotplt.org>
+
+	* ar.c (write_archive): Adjust call to SMART_RENAME.
+	* arsup.c (ar_save): Likewise.
+	* objcopy (strip_main): Don't set times on temporary file and
+	adjust call to SMART_RENAME.
+	(copy_main): Likewise.
+	* rename.c [!S_ISLNK]: Remove definitions.
+	(try_preserve_permissions): Remove function.
+	(smart_rename): Replace PRESERVE_DATES argument with
+	TARGET_STAT.  Use rename system call only if TO does not exist.
+	* bucomm.h (smart_rename): Adjust declaration.
+
+2021-02-09  Alan Modra  <amodra@gmail.com>
+
+	PR 27382
+	* objcopy.c (copy_file): Use bfd_stat.
+
+2021-02-06  Nick Clifton  <nickc@redhat.com>
+
+	This is the 2.36.1 release.
+	* configure: Regenerate.
+	* po/binutils.pot: Regenerate.
+
+2021-01-26  Frederic Cambus  <fred@statdns.com>
+
+	* objcopy.c (copy_main): Fix a double free happening when both
+	--localize-symbols and --globalize-symbols options are invoked
+	together.
+
+2021-01-24  Nick Clifton  <nickc@redhat.com>
+
+	* configure: Regenerate.
+
+2021-01-24  Nick Clifton  <nickc@redhat.com>
+
+	This is the 2.36 release.
+	* configure: Regenerate.
+
+2021-01-14  Nick Clifton  <nickc@redhat.com>
+
+	* po/sv.po: Updated Swedish translation.
+
+2021-01-12  Nick Clifton  <nickc@redhat.com>
+
+	* po/fr.po: Updated French translation.
+
+2021-01-11  Nick Clifton  <nickc@redhat.com>
+
+	* po/pt.po: Updated Portuguese translation.
+	* po/sr.po: Updated Serbian translation.
+	* po/uk.po: Updated Ukranian translation.
+
+2021-01-09  Nick Clifton  <nickc@redhat.com>
+
+	* configure: Regenerate.
+	* po/binutils.pot: Regenerate.
+
+2021-01-09  Nick Clifton  <nickc@redhat.com>
+
+	* 2.36 release branch crated.
+
+2021-01-09  Alan Modra  <amodra@gmail.com>
+
+	* configure: Regenerate.
+
+2021-01-07  Samuel Thibault  <samuel.thibault@gnu.org>
+
+	* configure: Regenerate.
+
+2021-01-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR 27109
+	* objcopy.c (copy_object): Handle section symbols for
+	non-relocatable inputs.
+	* testsuite/binutils-all/readelf.exp (readelf_test): Check
+	is_elf_unused_section_symbols.
+	* testsuite/binutils-all/readelf.s-64: Updated.
+	* testsuite/binutils-all/readelf.ss: Likewise.
+	* testsuite/binutils-all/readelf.ss-64: Likewise.
+	* testsuite/binutils-all/readelf.s-64-unused: New file.
+	* testsuite/binutils-all/readelf.ss-64-unused: Likewise.
+	* testsuite/binutils-all/readelf.ss-unused: Likewise.
+	* testsuite/lib/binutils-common.exp
+	(is_elf_unused_section_symbols): New proc.
+
+2021-01-06  Reuben Thomas  <rrt@sc3d.org>
+
+	* binutils/readelf.c: Correct grammar in comment.
+
+2021-01-01  Nicolas Boulenguez  <nicolas@debian.org>
+
+	* coffgrok.c (do_type): Correct spelling of auxiliary in errors.
+	* doc/binutils.texi: Correct grammar.
+	* readelf.c (process_version_sections): Correct spelling of auxiliary
+	in warning.
+	* testsuite/binutils-all/vax/objdump.exp: Comment grammar fix.
+
+2021-01-01  Alan Modra  <amodra@gmail.com>
+
+	Update year range in copyright notice of all files.
+
+For older changes see ChangeLog-2020
+
+Copyright (C) 2021 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Local Variables:
+mode: change-log
+left-margin: 8
+fill-column: 74
+version-control: never
+End:
