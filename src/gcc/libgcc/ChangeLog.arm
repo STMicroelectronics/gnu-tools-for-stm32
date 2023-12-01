@@ -1,0 +1,6 @@
+2017-09-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-07-06  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/lib1funcs.S: Defined __ARM_ARCH__ to 8 for ARMv8-R.

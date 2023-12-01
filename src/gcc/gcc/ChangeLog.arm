@@ -1,0 +1,170 @@
+2018-03-15  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/t-rmprofile: Add mapping from -mcpu=cortex-r52 to
+	-march=armv7.
+
+2018-03-15  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/t-rmprofile: Add mapping from -mcpu=cortex-m33+nodsp to
+	-march=armv8-m.main.
+
+2018-02-27  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/arm-cpus.in (cortex-m33+nodsp): New CPU.
+	* config/arm/arm-cpu-cdata.h: Regenerate.
+	* config/arm/arm-cpu-data.h: Likewise.
+	* config/arm/arm-cpu.h: Likewise.
+	* config/arm/arm-tables.opt: Likewise.
+	* config/arm/arm-tune.md: Likewise.
+	* config/arm/arm.c (arm_file_start): Special case
+	* -mcpu=cortex-m33+nodsp to emit .arch armv8-m.main instead.
+	* doc/invoke.texi: Document cortex-m33+nodsp as a valid value for -mcpu
+	and -mtune.
+
+2018-02-27  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/t-rmprofile: Map Armv8-R and Armv8-R with CRC extension to
+	Armv7 multilibs.
+
+2017-11-23  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Cherry-pick from GCC 7
+	2017-11-09  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/arm.c (output_return_instruction): Add comments to
+	indicate requirement for cmse_nonsecure_entry return to account
+	for the size of clearing instruction output here.
+	(thumb_exit): Likewise.
+	* config/arm/thumb2.md (thumb2_cmse_entry_return): Fix length for
+	return in hardfloat mode.
+
+2017-09-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-07-14  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/arm-cpus.in (cortex-r52): Add new entry.
+	(armv8-r): Set ARM Cortex-R52 as default CPU.
+	* config/arm/arm-tables.opt: Regenerate.
+	* config/arm/arm-tune.md: Regenerate.
+	* config/arm/arm-cpu-cdata.h: Regenerate.
+	* config/arm/arm-cpu-data.h: Regenerate.
+	* config/arm/arm-cpu.h: Regenerate.
+	* config/arm/driver-arm.c (arm_cpu_table): Add entry for ARM
+	Cortex-R52.
+	* doc/invoke.texi: Mention -mtune=cortex-r52 and availability of fp.dp
+	extension for -mcpu=cortex-r52.
+
+2017-09-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-07-14  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/arm-isa.h (isa_bit_FP_ARMv8): Delete enumerator.
+	(ISA_FP_ARMv8): Define as ISA_FPv5 and ISA_FP_D32.
+	* config/arm/arm-cpus.in (fp-armv8): Define it as FP_ARMv8 only.
+	* config/arm/arm-cpu-data.h: Regenerate.
+	* config/arm/arm.h (TARGET_FPU_ARMV8): Delete.
+	(TARGET_VFP_FP16INST): Define using TARGET_VFP5 rather than
+	TARGET_FPU_ARMV8.
+	* config/arm/arm.c (arm_rtx_costs_internal): Replace checks against
+	TARGET_FPU_ARMV8 by checks against TARGET_VFP5.
+	* config/arm/arm-builtins.c (arm_builtin_vectorized_function): Define
+	first ARM_CHECK_BUILTIN_MODE definition using TARGET_VFP5 rather
+	than TARGET_FPU_ARMV8.
+	* config/arm/arm-c.c (arm_cpu_builtins): Likewise for
+	__ARM_FEATURE_NUMERIC_MAXMIN macro definition.
+	* config/arm/arm.md (cmov<mode>): Condition on TARGET_VFP5 rather than
+	TARGET_FPU_ARMV8.
+	* config/arm/neon.md (neon_vrint): Likewise.
+	(neon_vcvt): Likewise.
+	(neon_<fmaxmin_op><mode>): Likewise.
+	(<fmaxmin><mode>3): Likewise.
+	* config/arm/vfp.md (l<vrint_pattern><su_optab><mode>si2): Likewise.
+	* config/arm/predicates.md (arm_cond_move_operator): Check against
+	TARGET_VFP5 rather than TARGET_FPU_ARMV8 and fix spacing.
+
+2017-09-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-07-06  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/arm-cpus.in (armv8-r): Add new entry.
+	(armv8-r+crc): Likewise.
+	* config/arm/arm-isa.h (ISA_ARMv8r): Define macro.
+	* config/arm/arm-tables.opt: Regenerate.
+	* config/arm/arm-cpu-cdata.h: Regenerate.
+	* config/arm/arm-cpu-data.h: Regenerate.
+	* config/arm/arm.h (enum base_architecture): Add BASE_ARCH_8R
+	enumerator.
+	* doc/invoke.texi: Mention -march=armv8-r and its crc extension.
+
+2017-09-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-07-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/driver-arm.c (arm_cpu_table): Add entry for ARM
+	Cortex-R7 and Cortex-R8 processors.
+
+2017-07-10  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/t-rmprofile: Remove multilibs for fpv5-sp-d16 and map it to
+	fpv4-sp-d16.
+
+2017-06-20  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-06-20  Prakhar Bahuguna  <prakhar.bahuguna@arm.com>
+
+	* config/arm/arm-c.c (arm_cpu_builtins): New block to define
+	__ARM_FEATURE_COPROC according to support.
+
+2017-06-01  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-05-03  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/arm/iterators.md (CCSI): New mode iterator.
+	(arch): New mode attribute.
+	* config/arm/sync.md (atomic_compare_and_swap<mode>_1): Rename into ...
+	(atomic_compare_and_swap<CCSI:arch><NARROW:mode>_1): This and ...
+	(atomic_compare_and_swap<CCSI:arch><SIDI:mode>_1): This.  Use CCSI
+	code iterator for success result mode.
+	* config/arm/arm.c (arm_expand_compare_and_swap): Adapt code to use
+	the corresponding new insn generators.
+
+2017-05-31  Prakhar Bahuguna  <prakhar.bahuguna@arm.com>
+
+	Backport from mainline
+	2017-05-04  Prakhar Bahuguna  <prakhar.bahuguna@arm.com>
+		    Andre Simoes Dias Vieira  <andre.simoesdiasvieira@arm.com>
+
+	* config/arm/arm.md (movsi): Add TARGET_32BIT in addition to the
+	TARGET_HAVE_MOVT conditional.
+	(movt splitter): Likewise.
+	* config/arm/arm.c (arm_option_check_internal): Change arm_arch_thumb2
+	to TARGET_HAVE_MOVT, and merge with -mslow-flash-data check.
+	(const_ok_for_arm): Change else to else if (TARGET_THUMB2) and add else
+	block for Thumb-1 with MOVT.
+	(thumb2_legitimate_address_p): Move code block ...
+	(can_avoid_literal_pool_for_label_p): ... into this new function.
+	(thumb1_legitimate_address_p): Add check for TARGET_HAVE_MOVT and
+	literal pool.
+	(thumb_legitimate_constant_p): Add conditional on TARGET_HAVE_MOVT
+	* doc/invoke.texi (-mpure-code): Change "ARMv7-M targets" for
+	"M-profile targets with the MOVT instruction".
+
+2017-05-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-05-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* configure.ac (--enable-mingw-wildcard): Add new configurable feature.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+	* config/i386/driver-mingw32.c: new file.
+	* config/i386/x-mingw32: Add rule to build driver-mingw32.o.
+	* config.host: Link driver-mingw32.o on MinGW host.
+	* doc/install.texi: Document new --enable-mingw-wildcard configure
+	option.

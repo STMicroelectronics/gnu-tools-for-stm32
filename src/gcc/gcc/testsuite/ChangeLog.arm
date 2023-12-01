@@ -1,0 +1,50 @@
+2017-11-28  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-06-15  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	PR lto/69866
+	* gcc.dg/lto/pr69866_0.c: New test.
+	* gcc.dg/lto/pr69866_1.c: Likewise.
+
+2017-09-04  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-07-06  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* lib/target-supports.exp: Generate
+	check_effective_target_arm_arch_v8r_ok, add_options_for_arm_arch_v8r
+	and check_effective_target_arm_arch_v8r_multilib.
+
+2017-06-20  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	Backport from mainline
+	2017-06-20  Prakhar Bahuguna  <prakhar.bahuguna@arm.com>
+
+	* gcc.target/arm/acle/cdp.c: Add feature macro bitmap test.
+	* gcc.target/arm/acle/cdp2.c: Likewise.
+	* gcc.target/arm/acle/ldc.c: Likewise.
+	* gcc.target/arm/acle/ldc2.c: Likewise.
+	* gcc.target/arm/acle/ldc2l.c: Likewise.
+	* gcc.target/arm/acle/ldcl.c: Likewise.
+	* gcc.target/arm/acle/mcr.c: Likewise.
+	* gcc.target/arm/acle/mcr2.c: Likewise.
+	* gcc.target/arm/acle/mcrr.c: Likewise.
+	* gcc.target/arm/acle/mcrr2.c: Likewise.
+	* gcc.target/arm/acle/mrc.c: Likewise.
+	* gcc.target/arm/acle/mrc2.c: Likewise.
+	* gcc.target/arm/acle/mrrc.c: Likewise.
+	* gcc.target/arm/acle/mrrc2.c: Likewise.
+	* gcc.target/arm/acle/stc.c: Likewise.
+	* gcc.target/arm/acle/stc2.c: Likewise.
+	* gcc.target/arm/acle/stc2l.c: Likewise.
+	* gcc.target/arm/acle/stcl.c: Likewise.
+
+2017-05-31  Prakhar Bahuguna  <prakhar.bahuguna@arm.com>
+
+	Backport from mainline
+	2017-05-04  Prakhar Bahuguna  <prakhar.bahuguna@arm.com>
+		    Andre Simoes Dias Vieira  <andre.simoesdiasvieira@arm.com>
+
+	* gcc.target/arm/pure-code/pure-code.exp: Add conditional for
+	check_effective_target_arm_thumb1_movt_ok.

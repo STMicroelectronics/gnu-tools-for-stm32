@@ -1,0 +1,4 @@
+@set VERSION_PACKAGE (GNU Tools for ARM Embedded Processors)
+@set CURRENT_YEAR  2014
+@set CURRENT_MONTH 01
+@set PKG_NAME gcc-arm-none-eabi-4_7-2013q1-20130106
