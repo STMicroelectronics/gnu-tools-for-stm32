@@ -1,0 +1,35 @@
+What's new:
+-----------
+
+- Drop support for Windows 7, Windows 8, Server 2008 R2 and Server 2012.
+
+- The console device gets accessible from other terminals such as other
+  consoles and ptys. Thanks to this new feature, GNU screen and tmux
+  now work in the console.
+
+- newgrp(1) tool.
+
+- cygcheck has new options searching for available packages in the
+  cygwin distro, as well as getting extended info on available and
+  installed packages.
+
+- fnmatch(3) and glob(3) now support named character classes, equivalence
+  class expressions, and collating symbols in the search pattern, i.e.,
+  [:alnum:], [=a=], [.aa.].
+
+- Introduce /proc/codesets and /proc/locales with information on
+  supported codesets and locales for all interested parties.  Locale(1)
+  opens these files and uses the info for printing locale info like any
+  other process could do.
+
+- Add support for GB18030 codeset.
+
+- New API calls: posix_spawn_file_actions_addchdir_np,
+  posix_spawn_file_actions_addfchdir_np.
+
+What changed:
+-------------
+
+- posix_spawnp no longer falls back to starting the shell for unrecognized
+  files as execvp.  For the reasoning, see
+  https://www.austingroupbugs.net/view.php?id=1674

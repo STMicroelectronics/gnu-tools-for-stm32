@@ -1,0 +1,27 @@
+Bug Fixes
+---------
+
+- Fix CPU_SET(3) macro type mismatch by making the macros type-safe.
+  Addresses https://cygwin.com/pipermail/cygwin/2023-March/253220.html
+
+- kill(1): don't print spurious error message.
+  Addresses: https://cygwin.com/pipermail/cygwin/2023-March/253291.html
+
+- Align behaviour of dirname in terms of leading slashes to POSIX:
+  https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html
+
+- Fix reading CONIN$ in non cygwin apps when stdin is not a pty.
+  Addresses https://cygwin.com/pipermail/cygwin/2023-April/253424.html
+
+- Fix bug in cygheap allocation size computation after fork.  Addresses:
+  https://cygwin.com/pipermail/cygwin-developers/2023-April/012620.html
+
+- Fix return value of ilogbl(NaN).
+  Addresses: https://cygwin.com/pipermail/cygwin/2023-April/253511.html
+
+- Fix error handling in readlinkat.
+  Addresses: https://cygwin.com/pipermail/cygwin/2023-April/253510.html
+
+- Fix return code and errno set by renameat2, if oldfile and newfile
+  refer to the same file, and the RENAME_NOREPLACE flag is set.
+  Addresses: https://cygwin.com/pipermail/cygwin/2023-April/253514.html
