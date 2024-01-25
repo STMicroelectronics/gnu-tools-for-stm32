@@ -265,6 +265,7 @@ if [ "x$skip_native_build" != "xyes" ] ; then
         --enable-interwork \
         --enable-plugins \
         --with-sysroot=$INSTALLDIR_NATIVE/arm-none-eabi \
+        --with-zstd=no \
         "--with-pkgversion=$PKGVERSION"
 
     make -j$JOBS
@@ -311,6 +312,7 @@ if [ "x$skip_native_build" != "xyes" ] ; then
         --with-gnu-ld \
         --with-python-dir=share/gcc-arm-none-eabi \
         --with-sysroot=$INSTALLDIR_NATIVE/arm-none-eabi \
+        --with-zstd=no \
         ${GCC_CONFIG_OPTS}                              \
         "${GCC_CONFIG_OPTS_LCPP}"                              \
         "--with-pkgversion=$PKGVERSION" \
@@ -434,6 +436,7 @@ if [ "x$skip_native_build" != "xyes" ] ; then
         --with-headers=yes \
         --with-python-dir=share/gcc-arm-none-eabi \
         --with-sysroot=$INSTALLDIR_NATIVE/arm-none-eabi \
+        --with-zstd=no \
         $GCC_CONFIG_OPTS                                \
         "${GCC_CONFIG_OPTS_LCPP}"                              \
         "--with-pkgversion=$PKGVERSION" \
@@ -493,6 +496,7 @@ if [ "x$skip_native_build" != "xyes" ] ; then
         --with-headers=yes \
         --with-python-dir=share/gcc-arm-none-eabi \
         --with-sysroot=$BUILDDIR_NATIVE/target-libs/arm-none-eabi \
+        --with-zstd=no \
         $GCC_CONFIG_OPTS \
         "${GCC_CONFIG_OPTS_LCPP}"                              \
         "--with-pkgversion=$PKGVERSION" \
@@ -541,6 +545,7 @@ if [ "x$skip_native_build" != "xyes" ] ; then
             --with-libexpat \
             --with-lzma=no \
             --with-system-gdbinit=$INSTALLDIR_NATIVE/$HOST_NATIVE/arm-none-eabi/lib/gdbinit \
+            --with-zstd=no \
             $GDB_CONFIG_OPTS \
             $GDB_EXTRA_CONFIG_OPTS \
             '--with-gdb-datadir='\''${prefix}'\''/arm-none-eabi/share/gdb' \
@@ -674,7 +679,23 @@ if [ "x$skip_native_build" != "xyes" ] ; then
         time ${TAR} czf $PACKAGEDIR/${PACKAGE_NAME_NATIVE}-build.tar.gz --owner=0 --group=0 build-native/
         time ${TAR} czf $PACKAGEDIR/${PACKAGE_NAME_NATIVE}-install.tar.gz --owner=0 --group=0 install-native/
         popd
-    fi  # end of if [ "x$skip_package_bins" != "xyes" ]; then
+    fi
+
+    # Validate binaries on macos
+    if [ "x$BUILD" == "xx86_64-apple-darwin10" ]; then
+        echo Task [III-14] /Validate tool dependencies/
+        invalid=()
+        while read line; do
+          if objdump -macho --dylibs-used "$line" | grep -q '/usr/local/'; then
+            invalid+=($line)
+          fi
+        done <<< $(find $INSTALLDIR_NATIVE/ -type f |  xargs file | grep "Mach-O " | cut -d: -f1)
+
+        if [ ${#invalid[@]} -ne 0 ]; then
+          echo -e "Illegal dependency detected!${invalid[@]/#/\\n}\nAborting..."
+          exit 1
+        fi
+    fi
 fi  #if [ "x$skip_native_build" != "xyes" ] ; then
 
 # skip building mingw32 toolchain if "--skip_mingw32" specified
@@ -932,7 +953,7 @@ if [ "x$skip_mingw32" != "xyes" ] ; then
         time ${TAR} czf $PACKAGEDIR/${PACKAGE_NAME_MINGW}-build.tar.gz --owner=0 --group=0 build-mingw/
         time ${TAR} czf $PACKAGEDIR/${PACKAGE_NAME_MINGW}-install.tar.gz --owner=0 --group=0 install-mingw/
         popd
-    fi #end of if [ "x$skip_package_bins" != "xyes" ]; then
+    fi
 fi #end of if [ "x$skip_mingw32" != "xyes" ] ;
 
 if [ "x$skip_package_sources" != "xyes" ]; then
