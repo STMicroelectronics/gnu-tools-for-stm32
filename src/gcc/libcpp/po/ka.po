@@ -1,0 +1,1257 @@
+# Georgian translation for cpplib.
+# Copyright (C) 2023 Free Software Foundation, Inc.
+# This file is distributed under the same license as the gcc package.
+# Temuri Doghonadze <temuri.doghonadze@gmail.com>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: cpplib 12.1-b20220213\n"
+"Report-Msgid-Bugs-To: https://gcc.gnu.org/bugs/\n"
+"POT-Creation-Date: 2024-02-16 21:34+0000\n"
+"PO-Revision-Date: 2023-01-15 07:01+0100\n"
+"Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
+"Language-Team: Georgian <(nothing)>\n"
+"Language: ka\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Bugs: Report translation errors to the Language-Team address.\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.2.2\n"
+
+#: charset.cc:759
+#, c-format
+msgid "conversion from %s to %s not supported by iconv"
+msgstr "%s-დან %s-ზე გადაყვანა iconv-ს მიერ მხარდაჭერილი არაა"
+
+#: charset.cc:762
+msgid "iconv_open"
+msgstr "iconv_open"
+
+#: charset.cc:772
+#, c-format
+msgid "no iconv implementation, cannot convert from %s to %s"
+msgstr "iconv-ის გარეშე. %s-დან %s-ზე გადაყვანა შეუძლებელია"
+
+#: charset.cc:870
+#, c-format
+msgid "character 0x%lx is not in the basic source character set\n"
+msgstr ""
+
+#: charset.cc:887 charset.cc:2574
+msgid "converting to execution character set"
+msgstr "გაშვების სიმბოლოების ნაკრებში გადაყვანა"
+
+#: charset.cc:893
+#, c-format
+msgid "character 0x%lx is not unibyte in execution character set"
+msgstr ""
+
+#: charset.cc:1549
+msgid "universal character names are only valid in C++ and C99"
+msgstr ""
+
+#: charset.cc:1553
+msgid "C99's universal character names are incompatible with C90"
+msgstr ""
+
+#: charset.cc:1556
+#, c-format
+msgid "the meaning of '\\%c' is different in traditional C"
+msgstr ""
+
+#: charset.cc:1595
+#, fuzzy
+#| msgid "'?' without following ':'"
+msgid "'\\N' not followed by '{'"
+msgstr "'?' -ი მომყოლი ':'-ის გარეშე"
+
+#: charset.cc:1625
+msgid "empty named universal character escape sequence; treating it as separate tokens"
+msgstr ""
+
+#: charset.cc:1632
+#, fuzzy
+#| msgid "incomplete universal character name %.*s"
+msgid "empty named universal character escape sequence"
+msgstr "დაუსრულებელი უნივერსალური სიმბოლოს სახელი %.*s"
+
+#: charset.cc:1637
+#, fuzzy
+#| msgid "universal character %.*s is not valid in an identifier"
+msgid "named universal character escapes are only valid in C++23"
+msgstr "უნივერსალური სიმბოლო %.*s იდენტიფიკატორში დაუშვებელია"
+
+#: charset.cc:1657
+#, fuzzy, c-format
+#| msgid "%.*s is not a valid universal character"
+msgid "\\N{%.*s} is not a valid universal character; treating it as separate tokens"
+msgstr "%.*s სწორი უნივერსალური სიმბოლო არაა"
+
+#: charset.cc:1663
+#, fuzzy, c-format
+#| msgid "%.*s is not a valid universal character"
+msgid "\\N{%.*s} is not a valid universal character"
+msgstr "%.*s სწორი უნივერსალური სიმბოლო არაა"
+
+#: charset.cc:1673
+#, c-format
+msgid "did you mean \\N{%s}?"
+msgstr ""
+
+#: charset.cc:1691
+#, c-format
+msgid "'\\N{' not terminated with '}' after %.*s; treating it as separate tokens"
+msgstr ""
+
+#: charset.cc:1700
+#, c-format
+msgid "'\\N{' not terminated with '}' after %.*s"
+msgstr ""
+
+#: charset.cc:1708
+msgid "In _cpp_valid_ucn but not a UCN"
+msgstr "არსებობს _cpp_valid_ucn -ში, მაგრამ არა UCN"
+
+#: charset.cc:1750
+msgid "empty delimited escape sequence; treating it as separate tokens"
+msgstr ""
+
+#: charset.cc:1757 charset.cc:2124 charset.cc:2227
+msgid "empty delimited escape sequence"
+msgstr ""
+
+#: charset.cc:1761 charset.cc:2130 charset.cc:2233
+msgid "delimited escape sequences are only valid in C++23"
+msgstr ""
+
+#: charset.cc:1775
+#, c-format
+msgid "'\\u{' not terminated with '}' after %.*s; treating it as separate tokens"
+msgstr ""
+
+#: charset.cc:1787
+#, c-format
+msgid "incomplete universal character name %.*s"
+msgstr "დაუსრულებელი უნივერსალური სიმბოლოს სახელი %.*s"
+
+#: charset.cc:1791
+#, c-format
+msgid "'\\u{' not terminated with '}' after %.*s"
+msgstr ""
+
+#: charset.cc:1806
+#, c-format
+msgid "%.*s is not a valid universal character"
+msgstr "%.*s სწორი უნივერსალური სიმბოლო არაა"
+
+#: charset.cc:1816 lex.cc:2082
+msgid "'$' in identifier or number"
+msgstr "\"$\" იდენტიფიკატორში ან რიცხვში"
+
+#: charset.cc:1826
+#, c-format
+msgid "universal character %.*s is not valid in an identifier"
+msgstr "უნივერსალური სიმბოლო %.*s იდენტიფიკატორში დაუშვებელია"
+
+#: charset.cc:1830
+#, c-format
+msgid "universal character %.*s is not valid at the start of an identifier"
+msgstr "უნივერსალური სიმბოლო %.*s იდენტიფიკატორის დასაწყისში დაუშვებელია"
+
+#: charset.cc:1837
+#, c-format
+msgid "%.*s is outside the UCS codespace"
+msgstr "%.*s UCS კოდის სივრცის გარეთაა"
+
+#: charset.cc:1881 charset.cc:3037
+msgid "converting UCN to source character set"
+msgstr ""
+
+#: charset.cc:1888
+msgid "converting UCN to execution character set"
+msgstr ""
+
+#: charset.cc:1952
+#, c-format
+msgid "extended character %.*s is not valid in an identifier"
+msgstr ""
+
+#: charset.cc:1969
+#, c-format
+msgid "extended character %.*s is not valid at the start of an identifier"
+msgstr ""
+
+#: charset.cc:2091
+msgid "the meaning of '\\x' is different in traditional C"
+msgstr ""
+
+#: charset.cc:2138
+msgid "\\x used with no following hex digits"
+msgstr ""
+
+#: charset.cc:2144
+#, c-format
+msgid "'\\x{' not terminated with '}' after %.*s"
+msgstr ""
+
+#: charset.cc:2152
+msgid "hex escape sequence out of range"
+msgstr "თექვსმეტობითი სპეციალური სიმბოლო დიაპაზონს გარეთაა"
+
+#: charset.cc:2195
+#, fuzzy
+#| msgid "'?' without following ':'"
+msgid "'\\o' not followed by '{'"
+msgstr "'?' -ი მომყოლი ':'-ის გარეშე"
+
+#: charset.cc:2239
+#, c-format
+msgid "'\\o{' not terminated with '}' after %.*s"
+msgstr ""
+
+#: charset.cc:2248
+msgid "octal escape sequence out of range"
+msgstr "რვაობით სპეციალური სიმბოლო დიაპაზონს გარეთაა"
+
+#: charset.cc:2300 charset.cc:2310
+#, c-format
+msgid "numeric escape sequence in unevaluated string: '\\%c'"
+msgstr ""
+
+#: charset.cc:2338
+msgid "the meaning of '\\a' is different in traditional C"
+msgstr ""
+
+#: charset.cc:2345
+#, c-format
+msgid "non-ISO-standard escape sequence, '\\%c'"
+msgstr "არა-ISO-სტანდარტის სპეციალური მიმდევრობა, '\\%c'"
+
+#: charset.cc:2353
+#, c-format
+msgid "unknown escape sequence: '\\%c'"
+msgstr "უცნობი სპეციალური მიმდევრობა: '\\%c'"
+
+#: charset.cc:2363
+#, c-format
+msgid "unknown escape sequence: '\\%s'"
+msgstr "უცნობი სპეციალური მიმდევრობა: '\\%s'"
+
+#: charset.cc:2371
+msgid "converting escape sequence to execution character set"
+msgstr ""
+
+#: charset.cc:2511
+msgid "missing open quote"
+msgstr "გამხსნელი ბრჭყალი აღმოჩენილი არაა"
+
+#: charset.cc:2772
+msgid "character not encodable in a single execution character code unit"
+msgstr ""
+
+#: charset.cc:2777
+msgid "at least one character in a multi-character literal not encodable in a single execution character code unit"
+msgstr ""
+
+#: charset.cc:2795
+#, c-format
+msgid "multi-character literal with %ld characters exceeds 'int' size of %ld bytes"
+msgstr ""
+
+#: charset.cc:2799 charset.cc:2894
+msgid "multi-character literal cannot have an encoding prefix"
+msgstr ""
+
+#: charset.cc:2802 charset.cc:2897
+msgid "character not encodable in a single code unit"
+msgstr ""
+
+#: charset.cc:2806
+msgid "multi-character character constant"
+msgstr "მრავალსიმბოლოიანი სიმბოლური მუდმივა"
+
+#: charset.cc:2938
+msgid "empty character constant"
+msgstr "ცარიელი სიმბოლური მუდმივა"
+
+#: charset.cc:3122
+#, c-format
+msgid "failure to convert %s to %s"
+msgstr "%s-ის %s-ში გადაყვანის შეცდომა"
+
+#: directives.cc:237 directives.cc:280
+#, c-format
+msgid "extra tokens at end of #%s directive"
+msgstr "დამატებითი კოდები #%s დირექტივის ბოლოში"
+
+#: directives.cc:387
+#, c-format
+msgid "#%s is a GCC extension"
+msgstr "#%s GCC-ის გაფართოებაა"
+
+#: directives.cc:394 directives.cc:2163 directives.cc:2202
+#, c-format
+msgid "#%s before C++23 is a GCC extension"
+msgstr "#%s -ი C++23 -ის შემდეგ GCC -ის გაფართოებაა"
+
+#: directives.cc:397 directives.cc:401 directives.cc:2167 directives.cc:2206
+#, fuzzy, c-format
+#| msgid "#%s before C++23 is a GCC extension"
+msgid "#%s before C23 is a GCC extension"
+msgstr "#%s -ი C++23 -ის შემდეგ GCC -ის გაფართოებაა"
+
+#: directives.cc:407
+#, c-format
+msgid "#%s is a deprecated GCC extension"
+msgstr "#%s GCC-ის მოძველებული გაფართოებაა"
+
+#: directives.cc:420
+msgid "suggest not using #elif in traditional C"
+msgstr "რჩევა, ტრადიციულ C-ში არ გამოიყენოთ #elif"
+
+#: directives.cc:423
+#, c-format
+msgid "traditional C ignores #%s with the # indented"
+msgstr ""
+
+#: directives.cc:427
+#, c-format
+msgid "suggest hiding #%s from traditional C with an indented #"
+msgstr ""
+
+#: directives.cc:453
+msgid "embedding a directive within macro arguments is not portable"
+msgstr ""
+
+#: directives.cc:481
+msgid "style of line directive is a GCC extension"
+msgstr "ხაზის დირექტივების სტილი GCC-ს გაფართოებაა"
+
+#: directives.cc:556
+#, c-format
+msgid "invalid preprocessing directive #%s; did you mean #%s?"
+msgstr ""
+
+#: directives.cc:562
+#, c-format
+msgid "invalid preprocessing directive #%s"
+msgstr "არასწორი პრეპროცესორის დირექტივა #%s"
+
+#: directives.cc:632
+#, c-format
+msgid "\"%s\" cannot be used as a macro name"
+msgstr "\"%s\" -ს მაკროს სახელში ვერ გამოიყენებთ"
+
+#: directives.cc:639
+#, c-format
+msgid "\"%s\" cannot be used as a macro name as it is an operator in C++"
+msgstr ""
+
+#: directives.cc:642
+#, c-format
+msgid "no macro name given in #%s directive"
+msgstr ""
+
+#: directives.cc:645
+msgid "macro names must be identifiers"
+msgstr "მაკროს სახელები იდენტიფიკატორებს უნდა წარმოადგენდნენ"
+
+#: directives.cc:698 directives.cc:702
+#, c-format
+msgid "undefining \"%s\""
+msgstr "\"%s\"-ის აღწერის გაუქმება"
+
+#: directives.cc:759
+msgid "missing terminating > character"
+msgstr "დამაბოლოებელი > სიმბოლო აღმოჩენილი არაა"
+
+#: directives.cc:818
+#, c-format
+msgid "#%s expects \"FILENAME\" or <FILENAME>"
+msgstr "#%s მოელის \"FILENAME\"-ს ან <FILENAME>-ს"
+
+#: directives.cc:864
+#, c-format
+msgid "empty filename in #%s"
+msgstr "ფაილის ცარიელი სახელი #%s -ში"
+
+#: directives.cc:873
+#, c-format
+msgid "#include nested depth %u exceeds maximum of %u (use -fmax-include-depth=DEPTH to increase the maximum)"
+msgstr ""
+
+#: directives.cc:918
+msgid "#include_next in primary source file"
+msgstr "#include_next კოდის ძირითად ფაილში"
+
+#: directives.cc:944
+#, c-format
+msgid "invalid flag \"%s\" in line directive"
+msgstr "არასწორი ალამი \"%s' ხაზის დირექტივაში"
+
+#: directives.cc:1011
+msgid "unexpected end of file after #line"
+msgstr "ფაილის მოულოდნელი დასასრული #line-ის შემდეგ"
+
+#: directives.cc:1014
+#, c-format
+msgid "\"%s\" after #line is not a positive integer"
+msgstr "\"%s\" #line-ის შემდეგ დადებითი მთელი რიცხვი არაა"
+
+#: directives.cc:1020 directives.cc:1022
+msgid "line number out of range"
+msgstr "ხაზის ნომერი დიაპაზონს გარეთაა"
+
+#: directives.cc:1035 directives.cc:1116
+#, c-format
+msgid "\"%s\" is not a valid filename"
+msgstr "'%s' არასწორი ფაილის სახელია"
+
+#: directives.cc:1076
+#, c-format
+msgid "\"%s\" after # is not a positive integer"
+msgstr "\"%s\" #-ის შემდეგ დადებითი მთელი რიცხვი არაა"
+
+#: directives.cc:1143
+#, c-format
+msgid "file \"%s\" linemarker ignored due to incorrect nesting"
+msgstr ""
+
+#: directives.cc:1221 directives.cc:1223 directives.cc:1225 directives.cc:1816
+#, c-format
+msgid "%s"
+msgstr "%s"
+
+#: directives.cc:1249
+#, c-format
+msgid "invalid #%s directive"
+msgstr "#%s: არასწორი დირექტივა"
+
+#: directives.cc:1312
+#, c-format
+msgid "registering pragmas in namespace \"%s\" with mismatched name expansion"
+msgstr ""
+
+#: directives.cc:1321
+#, c-format
+msgid "registering pragma \"%s\" with name expansion and no namespace"
+msgstr ""
+
+#: directives.cc:1339
+#, c-format
+msgid "registering \"%s\" as both a pragma and a pragma namespace"
+msgstr ""
+
+#: directives.cc:1342
+#, c-format
+msgid "#pragma %s %s is already registered"
+msgstr "#pragma %s %s უკვე რეგისტრირებულია"
+
+#: directives.cc:1345
+#, c-format
+msgid "#pragma %s is already registered"
+msgstr "#pragma %s უკვე დარეგისტრირებულია"
+
+#: directives.cc:1375
+msgid "registering pragma with NULL handler"
+msgstr ""
+
+#: directives.cc:1592
+msgid "#pragma once in main file"
+msgstr "#pragma ერთხელ მთავარ ფაილში"
+
+#: directives.cc:1615
+msgid "invalid #pragma push_macro directive"
+msgstr "არასწორი #pragma push_macro დირექტივა"
+
+#: directives.cc:1672
+msgid "invalid #pragma pop_macro directive"
+msgstr "არასწორი #pragma pop_macro დირექტივა"
+
+#: directives.cc:1727
+msgid "invalid #pragma GCC poison directive"
+msgstr ""
+
+#: directives.cc:1736
+#, c-format
+msgid "poisoning existing macro \"%s\""
+msgstr ""
+
+#: directives.cc:1758
+msgid "#pragma system_header ignored outside include file"
+msgstr ""
+
+#: directives.cc:1783
+#, c-format
+msgid "cannot find source file %s"
+msgstr "წყაროს ფაილი %s ვერ ვიპოვე"
+
+#: directives.cc:1787
+#, c-format
+msgid "current file is older than %s"
+msgstr "მიმდინარე ფაილი ძველია, ვიდრე %s"
+
+#: directives.cc:1811
+#, c-format
+msgid "invalid \"#pragma GCC %s\" directive"
+msgstr "არასწორი \"#pragma GCC %s\" დირექტივა"
+
+#: directives.cc:2019
+msgid "_Pragma takes a parenthesized string literal"
+msgstr ""
+
+#: directives.cc:2102
+msgid "#else without #if"
+msgstr "#else -ს #if -ი აკლია"
+
+#: directives.cc:2107
+msgid "#else after #else"
+msgstr "#else-ი #else-ის შემდეგ"
+
+#: directives.cc:2109 directives.cc:2143
+msgid "the conditional began here"
+msgstr "პირობა აქ იწყება"
+
+#: directives.cc:2135
+#, c-format
+msgid "#%s without #if"
+msgstr "#%s -ი #if -ის გარეშე"
+
+#: directives.cc:2140
+#, c-format
+msgid "#%s after #else"
+msgstr "#%s-ი #else -ის შემდეგ"
+
+#: directives.cc:2242
+msgid "#endif without #if"
+msgstr "#endif -ი #if -ის გარეშე"
+
+#: directives.cc:2318
+msgid "missing '(' after predicate"
+msgstr ""
+
+#: directives.cc:2336
+msgid "missing ')' to complete answer"
+msgstr ""
+
+#: directives.cc:2348
+msgid "predicate's answer is empty"
+msgstr "პრედიკატის პასუხი ცარიელია"
+
+#: directives.cc:2378
+msgid "assertion without predicate"
+msgstr "დამტკიცება პრედიკატის გარეშე"
+
+#: directives.cc:2381
+msgid "predicate must be an identifier"
+msgstr "პრედიკატი იდენტიფიკატორი უნდა იყოს"
+
+#: directives.cc:2463
+#, c-format
+msgid "\"%s\" re-asserted"
+msgstr ""
+
+#: directives.cc:2781
+#, c-format
+msgid "unterminated #%s"
+msgstr "დაუსრულებელი #%s"
+
+#: errors.cc:335 errors.cc:350
+#, c-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+#: errors.cc:348
+msgid "stdout"
+msgstr "stdout"
+
+#: expr.cc:667 expr.cc:784
+msgid "fixed-point constants are a GCC extension"
+msgstr ""
+
+#: expr.cc:692
+msgid "invalid prefix \"0b\" for floating constant"
+msgstr ""
+
+#: expr.cc:705
+msgid "use of C++17 hexadecimal floating constant"
+msgstr ""
+
+#: expr.cc:708
+msgid "use of C99 hexadecimal floating constant"
+msgstr ""
+
+#: expr.cc:752
+#, c-format
+msgid "invalid suffix \"%.*s\" on floating constant"
+msgstr ""
+
+#: expr.cc:763 expr.cc:830
+#, c-format
+msgid "traditional C rejects the \"%.*s\" suffix"
+msgstr ""
+
+#: expr.cc:771
+msgid "suffix for double constant is a GCC extension"
+msgstr ""
+
+#: expr.cc:777
+#, c-format
+msgid "invalid suffix \"%.*s\" with hexadecimal floating constant"
+msgstr ""
+
+#: expr.cc:790 expr.cc:794
+msgid "decimal float constants are a C23 feature"
+msgstr ""
+
+#: expr.cc:813
+#, c-format
+msgid "invalid suffix \"%.*s\" on integer constant"
+msgstr ""
+
+#: expr.cc:838
+msgid "use of C++11 long long integer constant"
+msgstr ""
+
+#: expr.cc:839
+msgid "use of C99 long long integer constant"
+msgstr ""
+
+#: expr.cc:853
+msgid "use of C++23 %<size_t%> integer constant"
+msgstr ""
+
+#: expr.cc:854
+msgid "use of C++23 %<make_signed_t<size_t>%> integer constant"
+msgstr ""
+
+#: expr.cc:864 expr.cc:875
+msgid "ISO C does not support literal %<wb%> suffixes before C23"
+msgstr ""
+
+#: expr.cc:888
+msgid "imaginary constants are a GCC extension"
+msgstr ""
+
+#: expr.cc:895
+msgid "binary constants are a C++14 feature or GCC extension"
+msgstr ""
+
+#: expr.cc:897
+msgid "binary constants are a C23 feature or GCC extension"
+msgstr ""
+
+#: expr.cc:902
+msgid "binary constants are a C23 feature"
+msgstr ""
+
+#: expr.cc:998
+msgid "integer constant is too large for its type"
+msgstr ""
+
+#: expr.cc:1029
+msgid "integer constant is so large that it is unsigned"
+msgstr ""
+
+#: expr.cc:1124
+msgid "missing ')' after \"defined\""
+msgstr ""
+
+#: expr.cc:1131
+msgid "operator \"defined\" requires an identifier"
+msgstr ""
+
+#: expr.cc:1139
+#, c-format
+msgid "(\"%s\" is an alternative token for \"%s\" in C++)"
+msgstr ""
+
+#: expr.cc:1152
+msgid "this use of \"defined\" may not be portable"
+msgstr ""
+
+#: expr.cc:1197
+msgid "user-defined literal in preprocessor expression"
+msgstr ""
+
+#: expr.cc:1202
+msgid "floating constant in preprocessor expression"
+msgstr ""
+
+#: expr.cc:1208
+msgid "imaginary number in preprocessor expression"
+msgstr ""
+
+#: expr.cc:1257
+#, c-format
+msgid "\"%s\" is not defined, evaluates to 0"
+msgstr ""
+
+#: expr.cc:1270
+msgid "assertions are a GCC extension"
+msgstr ""
+
+#: expr.cc:1273
+msgid "assertions are a deprecated extension"
+msgstr ""
+
+#: expr.cc:1523
+#, c-format
+msgid "unbalanced stack in %s"
+msgstr ""
+
+#: expr.cc:1543
+#, c-format
+msgid "impossible operator '%u'"
+msgstr "შეუძლებელი ოპერატორი '%u'"
+
+#: expr.cc:1644
+msgid "missing ')' in expression"
+msgstr "გამოსახულებას ')' აკლია"
+
+#: expr.cc:1673
+msgid "'?' without following ':'"
+msgstr "'?' -ი მომყოლი ':'-ის გარეშე"
+
+#: expr.cc:1683
+msgid "integer overflow in preprocessor expression"
+msgstr ""
+
+#: expr.cc:1688
+msgid "missing '(' in expression"
+msgstr ""
+
+#: expr.cc:1720
+#, c-format
+msgid "the left operand of \"%s\" changes sign when promoted"
+msgstr ""
+
+#: expr.cc:1725
+#, c-format
+msgid "the right operand of \"%s\" changes sign when promoted"
+msgstr ""
+
+#: expr.cc:1984
+msgid "traditional C rejects the unary plus operator"
+msgstr ""
+
+#: expr.cc:2082
+msgid "comma operator in operand of #if"
+msgstr ""
+
+#: expr.cc:2218
+msgid "division by zero in #if"
+msgstr "ნულზე გაყოფა #if -ში"
+
+#: files.cc:520
+msgid "NULL directory in find_file"
+msgstr ""
+
+#: files.cc:583
+msgid "one or more PCH files were found, but they were invalid"
+msgstr ""
+
+#: files.cc:587
+msgid "use -Winvalid-pch for more information"
+msgstr ""
+
+#: files.cc:703
+#, c-format
+msgid "%s is a block device"
+msgstr "%s ბლოკური მოწყობილობაა"
+
+#: files.cc:722
+#, c-format
+msgid "%s is too large"
+msgstr "%s ძალიან დიდია"
+
+#: files.cc:763
+#, c-format
+msgid "%s is shorter than expected"
+msgstr "%s მოსალოდნელზე მოკლეა"
+
+#: files.cc:1075
+#, c-format
+msgid "no include path in which to search for %s"
+msgstr ""
+
+#: files.cc:1598
+msgid "Multiple include guards may be useful for:\n"
+msgstr ""
+
+#: init.cc:638
+msgid "cppchar_t must be an unsigned type"
+msgstr ""
+
+#: init.cc:642
+#, c-format
+msgid "preprocessor arithmetic has maximum precision of %lu bits; target requires %lu bits"
+msgstr ""
+
+#: init.cc:649
+msgid "CPP arithmetic must be at least as precise as a target int"
+msgstr ""
+
+#: init.cc:652
+msgid "target char is less than 8 bits wide"
+msgstr ""
+
+#: init.cc:656
+msgid "target wchar_t is narrower than target char"
+msgstr ""
+
+#: init.cc:660
+msgid "target int is narrower than target char"
+msgstr ""
+
+#: init.cc:665
+msgid "CPP half-integer narrower than CPP character"
+msgstr ""
+
+#: init.cc:669
+#, c-format
+msgid "CPP on this host cannot handle wide character constants over %lu bits, but the target requires %lu bits"
+msgstr ""
+
+#: lex.cc:1132
+msgid "backslash and newline separated by space"
+msgstr ""
+
+#: lex.cc:1137
+msgid "backslash-newline at end of file"
+msgstr ""
+
+#: lex.cc:1153
+#, c-format
+msgid "trigraph ??%c converted to %c"
+msgstr ""
+
+#: lex.cc:1161
+#, c-format
+msgid "trigraph ??%c ignored, use -trigraphs to enable"
+msgstr ""
+
+#: lex.cc:1610
+msgid "end of bidirectional context"
+msgstr ""
+
+#: lex.cc:1651
+msgid "unpaired UTF-8 bidirectional control characters detected"
+msgstr ""
+
+#: lex.cc:1655
+msgid "unpaired UTF-8 bidirectional control character detected"
+msgstr ""
+
+#: lex.cc:1693
+#, c-format
+msgid "UTF-8 vs UCN mismatch when closing a context by \"%s\""
+msgstr ""
+
+#: lex.cc:1702
+#, c-format
+msgid "\"%s\" is closing an unopened context"
+msgstr "\"%s\" გაუხსნელ კონტექსტს ხურავს"
+
+#: lex.cc:1706
+#, c-format
+msgid "found problematic Unicode character \"%s\""
+msgstr "აღმოჩენილია პრობლემატური უნიკოდის სიმბოლო \"%s\""
+
+#: lex.cc:1736 lex.cc:1742
+#, c-format
+msgid "invalid UTF-8 character <%x>"
+msgstr ""
+
+#: lex.cc:1752 lex.cc:1758
+#, c-format
+msgid "invalid UTF-8 character <%x><%x>"
+msgstr ""
+
+#: lex.cc:1768 lex.cc:1774
+#, c-format
+msgid "invalid UTF-8 character <%x><%x><%x>"
+msgstr ""
+
+#: lex.cc:1784 lex.cc:1790
+#, c-format
+msgid "invalid UTF-8 character <%x><%x><%x><%x>"
+msgstr ""
+
+#: lex.cc:1872
+msgid "\"/*\" within comment"
+msgstr "\"/*\" კომენტარში"
+
+#: lex.cc:1976
+#, c-format
+msgid "%s in preprocessing directive"
+msgstr "%s პრეპროცესორის დირექტივაში"
+
+#: lex.cc:1988
+msgid "null character(s) ignored"
+msgstr "ნულოვანი შეტყობინებები გამოტოვებულია"
+
+#: lex.cc:2049
+#, c-format
+msgid "`%.*s' is not in NFKC"
+msgstr "`%.*s'-ი NFKC-ში არაა"
+
+#: lex.cc:2052 lex.cc:2055
+#, c-format
+msgid "`%.*s' is not in NFC"
+msgstr "`%.*s' -ი NFC-ში არაა"
+
+#: lex.cc:2144
+msgid "__VA_OPT__ is not available until C++20"
+msgstr "__VA_OPT__ -ი C++20-მდე ხელმიუწვდომელია"
+
+#: lex.cc:2147
+#, fuzzy
+#| msgid "__VA_OPT__ is not available until C++20"
+msgid "__VA_OPT__ is not available until C23"
+msgstr "__VA_OPT__ -ი C++20-მდე ხელმიუწვდომელია"
+
+#: lex.cc:2155
+msgid "__VA_OPT__ can only appear in the expansion of a C++20 variadic macro"
+msgstr ""
+
+#: lex.cc:2172
+#, c-format
+msgid "attempt to use poisoned \"%s\""
+msgstr "მოწამლული \"%s\"-ის გამოყენების მცდელობა"
+
+#: lex.cc:2177
+msgid "poisoned here"
+msgstr ""
+
+#: lex.cc:2187
+msgid "__VA_ARGS__ can only appear in the expansion of a C++11 variadic macro"
+msgstr ""
+
+#: lex.cc:2191
+msgid "__VA_ARGS__ can only appear in the expansion of a C99 variadic macro"
+msgstr ""
+
+#: lex.cc:2203
+#, c-format
+msgid "identifier \"%s\" is a special operator name in C++"
+msgstr ""
+
+#: lex.cc:2372
+msgid "adjacent digit separators"
+msgstr "მოსაზღვრე ციფრის გამყოფები"
+
+#: lex.cc:2521
+msgid "invalid suffix on literal; C++11 requires a space between literal and string macro"
+msgstr ""
+
+#: lex.cc:2729
+msgid "raw string delimiter longer than 16 characters"
+msgstr ""
+
+#: lex.cc:2733
+msgid "invalid new-line in raw string delimiter"
+msgstr ""
+
+#: lex.cc:2737 lex.cc:5576
+#, c-format
+msgid "invalid character '%c' in raw string delimiter"
+msgstr ""
+
+#: lex.cc:2775 lex.cc:2798
+msgid "unterminated raw string"
+msgstr "დაუსრულებელი დაუმუშავებელი სტრიქონი"
+
+#: lex.cc:2955
+msgid "null character(s) preserved in literal"
+msgstr ""
+
+#: lex.cc:2958
+#, c-format
+msgid "missing terminating %c character"
+msgstr "დამაბოლოებელი %c სიმბოლო აღმოჩენილი არაა"
+
+#: lex.cc:2991
+msgid "C++11 requires a space between string literal and macro"
+msgstr ""
+
+#: lex.cc:3584
+msgid "module control-line cannot be in included file"
+msgstr ""
+
+#: lex.cc:3598
+#, c-format
+msgid "module control-line \"%s\" cannot be an object-like macro"
+msgstr ""
+
+#: lex.cc:4004 lex.cc:5409 traditional.cc:174
+msgid "unterminated comment"
+msgstr "დაუსრულებელი კომენტარი"
+
+#: lex.cc:4018 lex.cc:4052
+msgid "C++ style comments are not allowed in ISO C90"
+msgstr ""
+
+#: lex.cc:4020 lex.cc:4031 lex.cc:4055
+msgid "(this will be reported only once per input file)"
+msgstr ""
+
+#: lex.cc:4029
+msgid "C++ style comments are incompatible with C90"
+msgstr ""
+
+#: lex.cc:4061
+msgid "multi-line comment"
+msgstr "მრავალხაზიანი კომენტარი"
+
+#: lex.cc:4484
+#, c-format
+msgid "unspellable token %s"
+msgstr "გაურკვეველი კოდი %s"
+
+#: lex.cc:5564
+#, c-format
+msgid "raw string delimiter longer than %d characters"
+msgstr ""
+
+#: lex.cc:5634
+msgid "unterminated literal"
+msgstr "დაუსრულებელი ლიტერალი"
+
+#: macro.cc:94
+msgid "'##' cannot appear at either end of __VA_OPT__"
+msgstr ""
+
+#: macro.cc:144
+msgid "__VA_OPT__ may not appear in a __VA_OPT__"
+msgstr ""
+
+#: macro.cc:157
+msgid "__VA_OPT__ must be followed by an open parenthesis"
+msgstr ""
+
+#: macro.cc:235
+msgid "unterminated __VA_OPT__"
+msgstr "დაუსრულებელი __VA_OPT__"
+
+#: macro.cc:397
+#, c-format
+msgid "\"%s\" used outside of preprocessing directive"
+msgstr ""
+
+#: macro.cc:407
+#, c-format
+msgid "missing '(' before \"%s\" operand"
+msgstr ""
+
+#: macro.cc:422
+#, c-format
+msgid "operator \"%s\" requires a header-name"
+msgstr ""
+
+#: macro.cc:439
+#, c-format
+msgid "missing ')' after \"%s\" operand"
+msgstr ""
+
+#: macro.cc:459
+#, c-format
+msgid "macro \"%s\" is not used"
+msgstr "მაკრო \"%s\" არ გამოიყენება"
+
+#: macro.cc:498 macro.cc:803
+#, c-format
+msgid "invalid built-in macro \"%s\""
+msgstr "არასწორი ჩაშენებული მაკრო \"%s\""
+
+#: macro.cc:505 macro.cc:613
+#, c-format
+msgid "macro \"%s\" might prevent reproducible builds"
+msgstr ""
+
+#: macro.cc:536
+msgid "could not determine file timestamp"
+msgstr "ფაილის დროის შტამპის გარკვევის შეცდომა"
+
+#: macro.cc:627
+msgid "could not determine date and time"
+msgstr "დროისა და თარიღის გარკვევა შეუძლებელია"
+
+#: macro.cc:659
+msgid "__COUNTER__ expanded inside directive with -fdirectives-only"
+msgstr ""
+
+#: macro.cc:922
+msgid "invalid string literal, ignoring final '\\'"
+msgstr "არასწორი სტრიქონი ლიტერალი. ბოლო '\\' გამოტოვებული იქნება"
+
+#: macro.cc:986
+#, c-format
+msgid "pasting \"%.*s\" and \"%.*s\" does not give a valid preprocessing token"
+msgstr ""
+
+#: macro.cc:1118
+msgid "ISO C++11 requires at least one argument for the \"...\" in a variadic macro"
+msgstr ""
+
+#: macro.cc:1122
+msgid "ISO C99 requires at least one argument for the \"...\" in a variadic macro"
+msgstr ""
+
+#: macro.cc:1129
+#, c-format
+msgid "macro \"%s\" requires %u arguments, but only %u given"
+msgstr ""
+
+#: macro.cc:1134
+#, c-format
+msgid "macro \"%s\" passed %u arguments, but takes just %u"
+msgstr ""
+
+#: macro.cc:1138
+#, c-format
+msgid "macro \"%s\" defined here"
+msgstr "მაკრო \"%s\" აქაა აღწერილი"
+
+#: macro.cc:1332 traditional.cc:822
+#, c-format
+msgid "unterminated argument list invoking macro \"%s\""
+msgstr ""
+
+#: macro.cc:1478
+#, c-format
+msgid "function-like macro \"%s\" must be used with arguments in traditional C"
+msgstr ""
+
+#: macro.cc:2313
+#, c-format
+msgid "invoking macro %s argument %d: empty macro arguments are undefined in ISO C++98"
+msgstr ""
+
+#: macro.cc:2321 macro.cc:2330
+#, c-format
+msgid "invoking macro %s argument %d: empty macro arguments are undefined in ISO C90"
+msgstr ""
+
+#: macro.cc:3381
+#, c-format
+msgid "duplicate macro parameter \"%s\""
+msgstr "დუბლირებული მაკროს პარამეტრი \"%s\""
+
+#: macro.cc:3463
+#, c-format
+msgid "expected parameter name, found \"%s\""
+msgstr "მოველოდი პარამეტრის სახელს, მივიღე \"%s\""
+
+#: macro.cc:3464
+#, c-format
+msgid "expected ',' or ')', found \"%s\""
+msgstr "მოველოდი ','-ს ან ')'-ს. აღმოჩენილია \"%s\""
+
+#: macro.cc:3465
+msgid "expected parameter name before end of line"
+msgstr "ხაზის ბოლომდე პარამეტრს მოველოდი"
+
+#: macro.cc:3466
+msgid "expected ')' before end of line"
+msgstr "ხაზის ბოლომდე ')'-ს მოველოდი"
+
+#: macro.cc:3467
+msgid "expected ')' after \"...\""
+msgstr "\"...\"-ის შემდეგ ')'-ს მოველოდი"
+
+#: macro.cc:3524
+msgid "anonymous variadic macros were introduced in C++11"
+msgstr "ანონიმური არგუმენტების ცვლადი რიცხვის მქონე მაკროები C++11-ში გამოჩნდნენ"
+
+#: macro.cc:3525 macro.cc:3529
+msgid "anonymous variadic macros were introduced in C99"
+msgstr "ანონიმური არგუმენტების ცვლადი რიცხვის მქონე მაკროები C99-ში გამოჩნდნენ"
+
+#: macro.cc:3535
+msgid "ISO C++ does not permit named variadic macros"
+msgstr "ISO C++ სახელიან არგუმენტების ცვლადი რიცხვის მქონე მაკროებს მხარს არ უჭერს"
+
+#: macro.cc:3536
+msgid "ISO C does not permit named variadic macros"
+msgstr ""
+
+#: macro.cc:3582
+msgid "'##' cannot appear at either end of a macro expansion"
+msgstr ""
+
+#: macro.cc:3620
+msgid "ISO C++11 requires whitespace after the macro name"
+msgstr ""
+
+#: macro.cc:3621
+msgid "ISO C99 requires whitespace after the macro name"
+msgstr ""
+
+#: macro.cc:3645
+msgid "missing whitespace after the macro name"
+msgstr ""
+
+#: macro.cc:3698
+msgid "'#' is not followed by a macro parameter"
+msgstr ""
+
+#: macro.cc:3862
+#, c-format
+msgid "\"%s\" redefined"
+msgstr "\"%s\" ხელახლა აღიწერა"
+
+#: macro.cc:3867
+msgid "this is the location of the previous definition"
+msgstr "ეს წინა აღწერის მდებარეობაა"
+
+#: macro.cc:4004
+#, c-format
+msgid "macro argument \"%s\" would be stringified in traditional C"
+msgstr ""
+
+#: pch.cc:90 pch.cc:342 pch.cc:356 pch.cc:374 pch.cc:380 pch.cc:389 pch.cc:396
+msgid "while writing precompiled header"
+msgstr "წინასწარ აგებული თავსართის ჩაწერისას"
+
+#: pch.cc:616
+#, c-format
+msgid "%s: not used because `%.*s' is poisoned"
+msgstr ""
+
+#: pch.cc:638
+#, c-format
+msgid "%s: not used because `%.*s' not defined"
+msgstr ""
+
+#: pch.cc:650
+#, c-format
+msgid "%s: not used because `%.*s' defined as `%s' not `%.*s'"
+msgstr ""
+
+#: pch.cc:691
+#, c-format
+msgid "%s: not used because `%s' is defined"
+msgstr ""
+
+#: pch.cc:711
+#, c-format
+msgid "%s: not used because `__COUNTER__' is invalid"
+msgstr ""
+
+#: pch.cc:720 pch.cc:883
+msgid "while reading precompiled header"
+msgstr ""
+
+#: traditional.cc:891
+#, c-format
+msgid "detected recursion whilst expanding macro \"%s\""
+msgstr ""
+
+#: traditional.cc:1114
+msgid "syntax error in macro parameter list"
+msgstr "სინტაქსის შეცდომა მაკროს პარამეტრების სიაში"
+
+#~ msgid "character constant too long for its type"
+#~ msgstr "სიმბოლოების მუდმივა ძალიან გრძელია თავისი ტიპისთვის"

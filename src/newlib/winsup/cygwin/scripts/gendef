@@ -1,0 +1,483 @@
+#!/usr/bin/perl
+#
+# This file is part of Cygwin.
+#
+# This software is a copyrighted work licensed under the terms of the
+# Cygwin license.  Please consult the file "CYGWIN_LICENSE" for
+# details.
+#
+use strict;
+use integer;
+use Getopt::Long;
+
+sub cleanup(@);
+
+my $cpu;
+my $output_def;
+GetOptions('cpu=s'=>\$cpu, 'output-def=s'=>\$output_def);
+
+$main::first = 0;
+if (!defined($cpu) || !defined($output_def)) {
+    die "$0: missing required option\n";
+}
+
+my $is_x86_64 = $cpu eq 'x86_64';
+# FIXME? Do other (non-32 bit) arches on Windows still use symbol prefixes?
+my $sym_prefix = '';
+
+my @top = ();
+while (<>) {
+    push(@top, cleanup $_);
+    last if /^\s*exports$/oi;
+}
+my @in = cleanup <>;
+
+my %sigfe = ();
+my @data = ();
+my @nosigfuncs = ();
+my @text = ();
+for (@in) {
+    chomp;
+    s/\s+DATA$//o and do {
+	push @data, $_;
+	next;
+    };
+    if (/=/o) {
+	if (s/\s+NOSIGFE\s*$//) {
+	    # nothing
+	} elsif (s/\s+SIGFE(_MAYBE)?$//) {
+	    my $func = (split(' '))[2];
+	    my $maybe = (defined($1) ? lc $1 : '') . '_';
+	    $sigfe{$func} = '_sigfe' . $maybe . $func;
+	}
+    } else {
+	my ($func, $sigfe) = m%^\s*(\S+)(?:\s+((?:NO)?SIGFE(?:_MAYBE)?))?$%o;
+	if (defined($sigfe) && $sigfe =~ /^NO/o) {
+	    $_ = $func;
+	} else {
+	    $sigfe ||= 'sigfe';
+	    $_ = '_' . lc($sigfe) . '_' . $func;
+	    $sigfe{$func} = $_;
+	    $_ = $func . ' = ' . $_;
+	}
+    }
+    s/(\S)\s+(\S)/$1 $2/go;
+    s/(\S)\s+$/$1/o;
+    s/^\s+(\S)/$1/o;
+    push @text, $_;
+}
+
+for (@text) {
+    my ($alias, $func) = /^(\S+)\s+=\s+(\S+)\s*$/o;
+    $_ = $alias . ' = ' . $sigfe{$func}
+      if defined($func) && $sigfe{$func};
+}
+
+open OUT, '>', $output_def or die "$0: couldn't open \"$output_def\" - $!\n";
+push @top, (map {$_ . " DATA\n"} @data), (map {$_ . "\n"} @text);
+print OUT @top;
+close OUT;
+
+open SIGFE, '>', 'sigfe.s' or die "$0: couldn't open 'sigfe.s' file for writing - $!\n";
+
+for my $k (sort keys %sigfe) {
+    print SIGFE fefunc($k, $sigfe{$k});
+}
+close SIGFE;
+
+sub fefunc {
+    my $func = $sym_prefix . shift;
+    my $fe = $sym_prefix . shift;
+    my $sigfe_func;
+    if ($is_x86_64) {
+	$sigfe_func = ($fe =~ /^(.*)_${func}$/)[0];
+    }
+    my $extra;
+    my $res;
+    if ($is_x86_64) {
+	$res = <<EOF;
+	.extern	$func
+	.global	$fe
+	.seh_proc $fe
+$fe:
+	leaq	$func(%rip),%r10
+	pushq	%r10
+	.seh_pushreg %r10
+	.seh_endprologue
+	jmp	$sigfe_func
+	.seh_endproc
+
+EOF
+    }
+    if (!$main::first++) {
+	if ($is_x86_64) {
+	  $res = <<EOF . longjmp () . $res;
+	.include "tlsoffsets"
+	.text
+
+	.seh_proc _sigfe_maybe
+_sigfe_maybe:					# stack is aligned on entry!
+	.seh_endprologue
+	movq	%gs:8,%r10			# location of bottom of stack
+	leaq	_cygtls.initialized(%r10),%r11	# where we will be looking
+	cmpq	%r11,%rsp			# stack loc > than tls
+	jge	0f				# yep.  we don't have a tls.
+	movl	_cygtls.initialized(%r10),%r11d
+	cmpl	\$0xc763173f,%r11d		# initialized?
+	je	1f
+0:	ret
+	.seh_endproc
+
+	.seh_proc _sigfe
+_sigfe:						# stack is aligned on entry!
+	.seh_endprologue
+	movq	%gs:8,%r10			# location of bottom of stack
+1:	movl	\$1,%r11d
+	xchgl	%r11d,_cygtls.stacklock(%r10)	# try to acquire lock
+	testl	%r11d,%r11d			# it will be zero
+	jz	2f				#  if so
+	pause
+	jmp	1b				# loop
+2:	movq	\$8,%rax			# have the lock, now increment the
+	xaddq	%rax,_cygtls.stackptr(%r10)	#  stack pointer and get pointer
+	leaq	_sigbe(%rip),%r11		# new place to return to
+	xchgq	%r11,8(%rsp)			# exchange with real return value
+	movq	%r11,(%rax)			# store real return value on alt stack
+	incl	_cygtls.incyg(%r10)
+	decl	_cygtls.stacklock(%r10)		# release lock
+	popq	%rax				# pop real function address from stack
+	jmp	*%rax				# and jmp to it
+	.seh_endproc
+
+	.global _sigbe
+	.seh_proc _sigbe
+_sigbe:						# return here after cygwin syscall
+						# stack is aligned on entry!
+	.seh_endprologue
+	movq	%gs:8,%r10			# address of bottom of tls
+1:	movl	\$1,%r11d
+	xchgl	%r11d,_cygtls.stacklock(%r10)	# try to acquire lock
+	testl	%r11d,%r11d			# it will be zero
+	jz	2f				#  if so
+	pause
+	jmp	1b				#  and loop
+2:	movq	\$-8,%r11			# now decrement aux stack
+	xaddq	%r11,_cygtls.stackptr(%r10)	#  and get pointer
+	movq	-8(%r11),%r11			# get return address from signal stack
+	decl	_cygtls.incyg(%r10)
+	decl	_cygtls.stacklock(%r10)		# release lock
+	jmp	*%r11				# "return" to caller
+	.seh_endproc
+
+	.global	sigdelayed
+	.seh_proc sigdelayed
+sigdelayed:
+	pushq	%r10				# used for return address injection
+	.seh_pushreg %r10
+	pushq	%rbp
+	.seh_pushreg %rbp
+	movq	%rsp,%rbp
+	pushf
+	.seh_pushreg %rax			# fake, there's no .seh_pushreg for the flags
+	cld					# x86_64 ABI requires direction flag cleared
+	# stack is aligned or unaligned on entry!
+	# make sure it is aligned from here on
+	# We could be called from an interrupted thread which doesn't know
+	# about his fate, so save and restore everything and the kitchen sink.
+	andq	\$0xffffffffffffffc0,%rsp
+	.seh_setframe %rbp,0
+	pushq	%r15
+	.seh_pushreg %r15
+	pushq	%r14
+	.seh_pushreg %r14
+	pushq	%r13
+	.seh_pushreg %r13
+	pushq	%r12
+	.seh_pushreg %r12
+	pushq	%r11
+	.seh_pushreg %r11
+	pushq	%r9
+	.seh_pushreg %r9
+	pushq	%r8
+	.seh_pushreg %r8
+	pushq	%rsi
+	.seh_pushreg %rsi
+	pushq	%rdi
+	.seh_pushreg %rdi
+	pushq	%rdx
+	.seh_pushreg %rdx
+	pushq	%rcx
+	.seh_pushreg %rcx
+	pushq	%rbx
+	.seh_pushreg %rbx
+	pushq	%rax
+	.seh_pushreg %rax
+
+	# +0x20: indicates if xsave is available
+	# +0x24: decrement of the stack to allocate space
+	# +0x28: %eax returnd by cpuid (0x0d, 0x00)
+	# +0x2c: %edx returnd by cpuid (0x0d, 0x00)
+	# +0x30: state save area
+	movl	\$1,%eax
+	cpuid
+	andl	\$0x04000000,%ecx # xsave available?
+	jnz	1f
+	movl	\$0x248,%ebx # 0x18 for alignment, 0x30 for additional space
+	subq	%rbx,%rsp
+	movl	%ecx,0x20(%rsp)
+	movl	%ebx,0x24(%rsp)
+	fxsave64 0x30(%rsp) # x86 CPU with 64-bit mode has fxsave64/fxrstor64
+	jmp	2f
+1:
+	movl	\$0x0d,%eax
+	xorl	%ecx,%ecx
+	cpuid	# get necessary space for xsave
+	movq	%rbx,%rcx
+	addq	\$0x48,%rbx # 0x18 for alignment, 0x30 for additional space
+	subq	%rbx,%rsp
+	movl	%ebx,0x24(%rsp)
+	xorq	%rax,%rax
+	shrq	\$3,%rcx
+	leaq	0x30(%rsp),%rdi
+	rep	stosq
+	xgetbv	# get XCR0 (ecx is 0 after rep)
+	movl	%eax,0x28(%rsp)
+	movl	%edx,0x2c(%rsp)
+	notl	%ecx # set ecx non-zero
+	movl	%ecx,0x20(%rsp)
+	xsave64	0x30(%rsp)
+2:
+	.seh_endprologue
+
+	movq	%gs:8,%r12			# get tls
+	movl	_cygtls.saved_errno(%r12),%r15d	# temporarily save saved_errno
+	movq	\$_cygtls.start_offset,%rcx	# point to beginning of tls block
+	addq	%r12,%rcx			#  and store as first arg to method
+	call	_ZN7_cygtls19call_signal_handlerEv	# call handler
+
+1:	movl	\$1,%r11d
+	xchgl	%r11d,_cygtls.stacklock(%r12)	# try to acquire lock
+	testl	%r11d,%r11d			# it will be zero
+	jz	2f				#  if so
+	pause
+	jmp	1b				#  and loop
+2:	testl	%r15d,%r15d			# was saved_errno < 0
+	jl	3f				# yup.  ignore it
+	movq	_cygtls.errno_addr(%r12),%r11
+	movl	%r15d,(%r11)
+3:	movq	\$-8,%r11			# now decrement aux stack
+	xaddq	%r11,_cygtls.stackptr(%r12)	#  and get pointer
+	xorq	%r10,%r10
+	xchgq	%r10,-8(%r11)			# get return address from signal stack
+	xorl	%r11d,%r11d
+	movl	%r11d,_cygtls.incyg(%r12)
+	movl	%r11d,_cygtls.stacklock(%r12)	# release lock
+
+	movl	0x20(%rsp),%ecx
+	testl	%ecx,%ecx # xsave available?
+	jnz	1f
+	fxrstor64 0x30(%rsp)
+	jmp	2f
+1:
+	movl	0x28(%rsp),%eax
+	movl	0x2c(%rsp),%edx
+	xrstor64 0x30(%rsp)
+2:
+	movl	0x24(%rsp),%ebx
+	addq	%rbx,%rsp
+
+	popq	%rax
+	popq	%rbx
+	popq	%rcx
+	popq	%rdx
+	popq	%rdi
+	popq	%rsi
+	popq	%r8
+	popq	%r9
+	popq	%r11
+	popq	%r12
+	popq	%r13
+	popq	%r14
+	popq	%r15
+	movq	%rbp,%rsp
+	subq	\$8, %rsp
+	popf
+	popq	%rbp
+	xchgq	%r10,(%rsp)
+	ret
+	.seh_endproc
+_sigdelayed_end:
+	.global _sigdelayed_end
+
+	.seh_proc stabilize_sig_stack
+stabilize_sig_stack:
+	pushq	%r12
+	.seh_pushreg %r12
+	subq	\$0x20,%rsp
+	.seh_stackalloc 32
+	.seh_endprologue
+	movq	%gs:8,%r12
+1:	movl	\$1,%r10d
+	xchgl	%r10d,_cygtls.stacklock(%r12)	# try to acquire lock
+	testl	%r10d,%r10d
+	jz	2f
+	pause
+	jmp	1b
+2:	incl	_cygtls.incyg(%r12)
+	cmpl	\$0,_cygtls.current_sig(%r12)
+	jz	3f
+	decl	_cygtls.stacklock(%r12)		# release lock
+	movq	\$_cygtls.start_offset,%rcx	# point to beginning
+	addq	%r12,%rcx			#  of tls block
+	call	_ZN7_cygtls19call_signal_handlerEv
+	decl	_cygtls.incyg(%r12)
+	jmp	1b
+3:	decl	_cygtls.incyg(%r12)
+	addq	\$0x20,%rsp
+	movq	%r12,%r11			# return tls addr in r11
+	popq	%r12
+	ret
+	.seh_endproc
+EOF
+	}
+    }
+    return $res;
+}
+
+sub longjmp {
+    if ($is_x86_64) {
+	return <<EOF;
+
+	.globl	sigsetjmp
+	.seh_proc sigsetjmp
+sigsetjmp:
+	.seh_endprologue
+	movl	%edx,0x100(%rcx)		# store savemask
+	testl	%edx,%edx			# savemask != 0?
+	je	setjmp				# no, skip fetching sigmask
+	pushq	%rcx
+	subq	\$0x20,%rsp
+	leaq	0x108(%rcx),%r8			# &sigjmp_buf.sigmask
+	xorq	%rdx,%rdx			# NULL
+	xorl	%ecx,%ecx			# SIG_SETMASK
+	call	pthread_sigmask
+	addq	\$0x20,%rsp
+	popq	%rcx
+	jmp	setjmp
+	.seh_endproc
+
+	.globl  setjmp
+	.seh_proc setjmp
+setjmp:
+	.seh_endprologue
+	# We use the Windows jmp_buf layout with two small twists.
+	# - we store the tls stackptr in Frame, MSVCRT stores a second copy
+	#   of %rbp in Frame (twice? why?)
+	# - we just store %rsp as is, MSVCRT stores %rsp of the caller in Rsp
+	movq	%rbx,0x8(%rcx)
+	movq	%rsp,0x10(%rcx)
+	movq	%rbp,0x18(%rcx)
+	movq	%rsi,0x20(%rcx)
+	movq	%rdi,0x28(%rcx)
+	movq	%r12,0x30(%rcx)
+	movq	%r13,0x38(%rcx)
+	movq	%r14,0x40(%rcx)
+	movq	%r15,0x48(%rcx)
+	movq	(%rsp),%r10
+	movq	%r10,0x50(%rcx)
+	stmxcsr	0x58(%rcx)
+	fnstcw	0x5c(%rcx)
+	# jmp_buf is potentially unaligned!
+	movdqu	%xmm6,0x60(%rcx)
+	movdqu	%xmm7,0x70(%rcx)
+	movdqu	%xmm8,0x80(%rcx)
+	movdqu	%xmm9,0x90(%rcx)
+	movdqu	%xmm10,0xa0(%rcx)
+	movdqu	%xmm11,0xb0(%rcx)
+	movdqu	%xmm12,0xc0(%rcx)
+	movdqu	%xmm13,0xd0(%rcx)
+	movdqu	%xmm14,0xe0(%rcx)
+	movdqu	%xmm15,0xf0(%rcx)
+	pushq	%rcx
+	.seh_pushreg %rcx
+	call	stabilize_sig_stack		# returns tls in r11
+	popq	%rcx
+	movq	_cygtls.stackptr(%r11),%r10
+	movq	%r10,(%rcx)
+	decl	_cygtls.stacklock(%r11)		# release lock
+	xorl	%eax,%eax
+	ret
+	.seh_endproc
+
+	.globl	siglongjmp
+	.seh_proc siglongjmp
+siglongjmp:
+	pushq	%rcx
+	.seh_pushreg %rcx
+	.seh_endprologue
+	movl	%edx, %r12d
+	movl	0x100(%rcx),%r8d		# savemask
+	testl	%r8d,%r8d			# savemask != 0?
+	je	1f				# no, jmp to longjmp
+	xorq	%r8,%r8				# NULL
+	leaq    0x108(%rcx),%rdx		# &sigjmp_buf.sigmask
+	xorl	%ecx,%ecx			# SIG_SETMASK
+	subq	\$0x20,%rsp
+	call	pthread_sigmask
+	addq	\$0x20,%rsp
+	jmp	1f
+	.seh_endproc
+
+	.globl  longjmp
+	.seh_proc longjmp
+longjmp:
+	pushq	%rcx
+	.seh_pushreg %rcx
+	.seh_endprologue
+	movl	%edx,%r12d			# save return value
+1:
+	call	stabilize_sig_stack		# returns tls in r11
+	popq	%rcx
+	movl	%r12d,%eax			# restore return value
+	movq	(%rcx),%r10			# get old signal stack
+	movq	%r10,_cygtls.stackptr(%r11)	# restore
+	decl	_cygtls.stacklock(%r11)		# release lock
+	xorl	%r10d,%r10d
+	movl	%r10d,_cygtls.incyg(%r11)		# we're not in cygwin anymore
+	movq	0x8(%rcx),%rbx
+	movq	0x10(%rcx),%rsp
+	movq	0x18(%rcx),%rbp
+	movq	0x20(%rcx),%rsi
+	movq	0x28(%rcx),%rdi
+	movq	0x30(%rcx),%r12
+	movq	0x38(%rcx),%r13
+	movq	0x40(%rcx),%r14
+	movq	0x48(%rcx),%r15
+	movq	0x50(%rcx),%r10
+	movq	%r10,(%rsp)
+	ldmxcsr	0x58(%rcx)
+	fnclex
+	fldcw	0x5c(%rcx)
+	# jmp_buf is potentially unaligned!
+	movdqu	0x60(%rcx),%xmm6
+	movdqu	0x70(%rcx),%xmm7
+	movdqu	0x80(%rcx),%xmm8
+	movdqu	0x90(%rcx),%xmm9
+	movdqu	0xa0(%rcx),%xmm10
+	movdqu	0xb0(%rcx),%xmm11
+	movdqu	0xc0(%rcx),%xmm12
+	movdqu	0xd0(%rcx),%xmm13
+	movdqu	0xe0(%rcx),%xmm14
+	movdqu	0xf0(%rcx),%xmm15
+	testl	%eax,%eax
+	jne	0f
+	incl	%eax
+0:	ret
+	.seh_endproc
+EOF
+    }
+}
+
+sub cleanup(@) {
+    grep {s/\r//og; s/#.*//og; s/\s+\n//sog; !/^$/o && $_} @_;
+}

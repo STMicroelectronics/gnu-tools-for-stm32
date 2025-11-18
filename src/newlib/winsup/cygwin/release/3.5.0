@@ -1,0 +1,75 @@
+What's new:
+-----------
+
+- Drop support for Windows 7, Windows 8, Server 2008 R2 and Server 2012.
+
+- Console devices (/dev/consN) are now accessible by processes attached
+  to other consoles or ptys. Thanks to this new feature, GNU screen and
+  tmux now work in the console.
+
+- newgrp(1) tool.
+
+- cygcheck has new options searching for available packages in the
+  cygwin distro, as well as getting extended info on available and
+  installed packages.
+
+- fnmatch(3) and glob(3) now support named character classes, equivalence
+  class expressions, and collating symbols in the search pattern, i.e.,
+  [:alnum:], [=a=], [.aa.].
+
+- Introduce /dev/disk directory with various by-* subdirectories which
+  provide symlinks to disk and partition raw devices:
+  by-drive/DRIVE_LETTER ->  ../../sdXN
+  by-label/VOLUME_LABEL ->  ../../sdXN
+  by-id/BUSTYPE-[VENDOR_]PRODUCT_[SERIAL|0xHASH][-partN] -> ../../sdX[N]
+  by-partuuid/MBR_SERIAL-OFFSET -> ../../sdXN
+  by-partuuid/GPT_GUID -> ../../sdXN
+  by-uuid/VOLUME_SERIAL -> ../../sdXN
+  by-voluuid/MBR_SERIAL-OFFSET -> ../../sdXN
+  by-voluuid/VOLUME_GUID -> ../../sdXN
+  The subdirectories by-drive and by-voluuid are Cygwin specific.
+
+- Introduce /proc/codesets and /proc/locales with information on
+  supported codesets and locales for all interested parties.  Locale(1)
+  opens these files and uses the info for printing locale info like any
+  other process could do.
+
+- Add support for GB18030 codeset.
+
+- Add support for lseek flags SEEK_DATA and SEEK_HOLE, a GNU extension.
+
+- New API calls: posix_spawn_file_actions_addchdir_np,
+  posix_spawn_file_actions_addfchdir_np.
+
+- New API calls: c8rtomb, c16rtomb, c32rtomb, mbrtoc8, mbrtoc16, mbrtoc32.
+
+- New API call: close_range (available on FreeBSD and Linux).
+
+- New API call: fallocate (Linux-specific).
+
+- Implement OSS-based sound mixer device (/dev/mixer).
+
+What changed:
+-------------
+
+- posix_spawnp no longer falls back to starting the shell for unrecognized
+  files as execvp.  For the reasoning, see
+  https://www.austingroupbugs.net/view.php?id=1674
+
+- FIFOs now also work on NFS filesystems.
+
+- Enable automatic sparsifying of files on SSDs, independent of the
+  "sparse" mount mode.
+
+- When RLIMIT_CORE is more than 1MB, a core dump file which can be loaded by gdb
+  is now written on a fatal error. Otherwise, if it's greater than zero, a text
+  format .stackdump file is written, as previously.
+
+- The default RLIMIT_CORE is now 0, disabling the generation of core dump or
+  stackdump files.
+
+Fixes:
+------
+
+- Fix arc4random reseeding after fork(2).
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-January/255245.html
