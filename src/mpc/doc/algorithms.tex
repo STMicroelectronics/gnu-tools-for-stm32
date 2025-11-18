@@ -1,0 +1,1770 @@
+\documentclass [12pt]{article}
+
+\usepackage[a4paper]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{ae}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{comment}
+\usepackage[notref,notcite]{showkeys}
+
+\newcommand {\corr}[1]{{#1}}
+\newcommand {\appro}[1]{\widetilde {#1}}
+\newcommand {\mpc}{{\tt mpc}}
+\newcommand {\mpfr}{{\tt mpfr}}
+\newcommand {\ulp}[1]{#1~ulp}
+\newcommand {\Ulp}{{\operatorname {ulp}}}
+\DeclareMathOperator{\Exp}{\operatorname {Exp}}
+\newcommand {\atantwo}{\operatorname {atan2}}
+\newcommand{\error}{\operatorname {error}}
+\newcommand{\relerror}{\operatorname {relerror}}
+\newcommand{\Norm}{\operatorname {N}}
+\newcommand {\round}{\operatorname {\circ}}
+\DeclareMathOperator{\pinf}{\bigtriangleup}
+\DeclareMathOperator{\minf}{\bigtriangledown}
+\DeclareMathOperator{\N}{\mathcal N}
+\DeclareMathOperator{\A}{\mathcal A}
+\newcommand {\Z}{\mathbb Z}
+\newcommand {\Q}{\mathbb Q}
+\newcommand {\R}{\mathbb R}
+\renewcommand {\epsilon}{\varepsilon}
+\renewcommand {\theta}{\vartheta}
+\renewcommand {\leq}{\leqslant}
+\renewcommand {\geq}{\geqslant}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{prop}[theorem]{Proposition}
+\newtheorem{conj}[theorem]{Conjecture}
+\newenvironment{proof}{\noindent{\bf Proof:}}{{\hspace* {\fill}$\blacksquare$}}
+
+\newcommand {\enumi}[1]{(\alph {#1})}
+\renewcommand {\labelenumi}{\enumi {enumi}}
+\newcommand {\enumii}[1]{(\roman {#1})}
+\renewcommand {\labelenumii}{\enumii {enumii}}
+
+\title {MPC: Algorithms and Error Analysis}
+\author {Andreas Enge \and Philippe Th\'eveny \and Paul Zimmermann}
+\date {Draft; June 28, 2012}
+
+\begin {document}
+\maketitle
+\tableofcontents
+
+
+\section {Error propagation}
+
+\subsection {Introduction and notation}
+
+This section is devoted to the analysis of error propagation: Given a function
+whose input arguments already have a certain error, what is the error bound on
+the function output? The output error usually consists of two components: the
+error propagated from the input, which may be arbitrarily amplified (or, if
+one is lucky, shrunk); and an
+additional small error accounting for the rounding of the output. The results
+are needed to give a cumulated error analysis for algorithms that combine
+several elementary arithmetic operations.
+
+
+\subsubsection {Ulp calculus}
+
+\begin {definition}
+\label {def:exp}
+Let $x$ be a real number, which can be written uniquely as
+$x = m \cdot 2^e$ with $\frac{1}{2} \le |m| < 1$.
+The {\em exponent} of $x$ is
+$\Exp(x) = e = \lfloor \log_2 |x| \rfloor + 1$.
+The number is {\em representable at precision~$p$} if
+$2^p m$ is an integer.
+We denote the rounding of $x$ to one of the at most two representable
+numbers in the open interval $(x - 2^{-p}, x + 2^{-p})$ by
+$\round (x) = \round_p (x)$, with rounding being to nearest, up, down,
+towards zero or away from zero if there is a choice.
+\end {definition}
+
+\begin {prop}
+\label {prop:expmuldiv}
+If $x_1$ and $x_2$ are two real numbers, then
+\begin {gather*}
+\Exp (x_1) + \Exp (x_2) - 1 \leq \Exp (x_1 x_2) \leq \Exp (x_1) + \Exp (x_2),
+\\
+\Exp (x_1) - \Exp (x_2) \leq \Exp \left( \frac {x_1}{x_2} \right)
+\leq \Exp (x_1) - \Exp (x_2) + 1.
+\end {gather*}
+\end {prop}
+
+\begin {proof}
+Write $x_n = m_n 2^{\Exp (x_n)}$ and
+$x = x_1 x_2 = m 2^{\Exp x} = m_1 m_2 2^{\Exp (x_1) + \Exp (x_2)}$
+with $\frac {1}{2} \leq m_n, m < 1$.
+Then $m = m_1 m_2$ if the product is at least $\frac {1}{2}$ and
+$m = 2 m_1 m_2$ if the product is less than $\frac {1}{2}$, which
+yields the first line of inequalities.
+The other inequalities are derived in the same way from
+$\frac {1}{2} < \frac {m_1}{m_2} < 2$.
+\end {proof}
+
+
+\begin {prop}
+\label {prop:expround}
+For any real number $x$,
+\[
+\Exp (x) \leq \Exp (\round (x)) \leq \Exp (x) + 1,
+\]
+with equality occurring on the right if and only if
+$|x|$ has been rounded up to $|\round (x)| = 2^{\Exp (x)}$.
+\end {prop}
+
+\begin {proof}
+Letting $x = m 2^{\Exp (x)}$, we have
+$\frac {1}{2} \cdot 2^{\Exp (x)} \leq \round (x) \leq 1 \cdot 2^{\Exp (x)}$,
+since these two numbers are representable (independently of the precision).
+\end {proof}
+
+
+\begin {definition}
+\label {def:ulp}
+Let $x$ be a real number which is representable at precision~$p$.
+Its associated {\em unit in the last place} is
+$\Ulp(x) = \Ulp_p (x) = 2^{\Exp(x) - p}$, so that adding $\Ulp(x)$ to $x$
+corresponds to adding~$1$ to the integer $2^p m$.
+\end {definition}
+
+
+\subsubsection {Absolute error}
+
+In the remainder of this chapter, all complex numbers are denoted by
+the letter $z$ with subscripts and mathematical accents, decomposed in
+Cartesian coordinates as $z = x + i y$ with the same diacritics applied
+to $x$ and $y$ as to $z$. All representable real numbers are supposed
+to have the same precision~$p$. We apply the following error definition
+of real numbers separately to the two coordinates of a complex number.
+
+\begin {definition}
+\label {def:error}
+Given a real number $\corr x$ and its approximation $\appro x$,
+we define the {\em absolute error} of $\appro x$ as
+$\error (\appro x) = | \corr x - \appro x |$.
+\end {definition}
+
+Notice that in the following, the absolute error is usually expressed in terms
+of $\Ulp$, which is itself a relative measure with respect to the exponent of
+the number.
+
+Let $\corr z = f (\corr {z_1}, \ldots) = \corr x + i \corr y$ be the correct
+result of a complex function applied to the correct arguments $\corr {z_n}$.
+We assume that the $\corr {z_n}$ themselves are not known, but only
+approximate input values $\appro {z_n} = \appro {x_n} + i \appro {y_n}$;
+for instance, the $\corr {z_n}$ may be the exact results of some formul\ae,
+whereas the $\appro {z_n}$ are the outcome of the corresponding computation
+and affected by rounding errors. We suppose that error bounds
+$\error (\appro {x_n}) \leq k_{R, n} 2^{\Exp (\appro {x_n}) - p}$
+and $\error (\appro {y_n}) \leq k_{I, n} 2^{\Exp (\appro {y_n}) - p}$ for
+some $k_{R, n}$ and $k_{I, n}$ are known. (This particular notation
+becomes more comprehensible when $\appro {x_n}$ and $\appro {y_n}$ are
+representable at precision~$p$, since then the units of the error measure
+become $\Ulp (\appro {x_n})$ and $\Ulp (\appro {y_n})$, respectively;
+however, there is no need to restrict the results of this chapter to
+representable numbers.)
+Our aim is to determine the propagated error in the output value
+$\appro z = \appro x + i \appro y = f (\appro {z_1}, \ldots)$, which is given by
+\begin {equation}
+\label {eq:properror}
+\error (\appro x)
+\leq | \Re (f (\corr {z_1}, \ldots)) - \Re (f (\appro {z_1}, \ldots)) |
+\end {equation}
+and an analogous formula for $\error (\appro y)$. In general,
+we are looking for $k_R$ and $k_I$ such that
+\[
+\error (\appro x) \leq k_R 2^{\Exp (\appro x) - p}
+\text { and }
+\error (\appro y) \leq k_I 2^{\Exp (\appro y) - p}.
+\]
+Moreover, we are interested in the cumulated error if additionally
+$\appro z$ is rounded coordinatewise at the target precision~$p$
+to $\round (\appro z)$. This operation adds an error of
+$c_R \Ulp (\round (\appro x))$ to the real and of
+$c_I \Ulp (\round (\appro y))$ to the imaginary part, where
+$c_X \leq 1$ when $\round$ stands for rounding up, down, to zero or
+to infinity, and $c_X \leq \frac {1}{2}$ when $\round$ stands for
+rounding to nearest.
+Then, via Proposition~\ref {prop:expround},
+\[
+\error (\round (\appro x)) \leq (k_R + c_R) \Ulp (\appro x)
+\text { and }
+\error (\round (\appro y)) \leq (k_I + c_I) \Ulp (\appro y).
+\]
+
+
+\subsubsection {Real relative error}
+
+It can sometimes be useful to determine errors not absolutely as differences
+(close to~$0$),
+but relatively as multiplicative factors (close to~$1$).
+
+\begin {definition}
+\label {def:relerror}
+Given a real number $\corr x$ and its approximation $\appro x$,
+we define the {\em upper relative error} of $\appro x$ by
+\[
+\relerror^+ (\appro x) = \epsilon^+
+= \frac {\max (0, \corr x - \appro x)}{|\appro x|}.
+\]
+and its {\em lower relative error} by
+\[
+\relerror^- (\appro x) = \epsilon^-
+= \frac {\max (0, \appro x - \corr x)}{|\appro x|}.
+\]
+The {\em relative error} of $\appro x$ is
+\[
+\relerror (\appro x) = \epsilon = \max (\epsilon^-, \epsilon^+)
+= \frac {\error (\appro x)}{|\appro x|}.
+\]
+\end {definition}
+
+Notice that $\epsilon^- = 0$ whenever $\appro x \leq \corr x$ and
+$\epsilon^+ = 0$ whenever $\appro x \geq \corr x$, so that at least one of
+$\epsilon^+$ and $\epsilon^-$ is zero. We express relative errors with
+respect to the approximate value; thus, they define an interval around
+the approximate value containing the correct one. Precisely,
+$\corr x = \appro x (1 + \vartheta)$ for some number $\theta$ with
+$|\theta| \leq \epsilon$.
+
+The definition of relative error carries over to complex numbers,
+see \S\ref {sssec:comrelerror}.
+However, in the following we usually argument separately for the two coordinates,
+so we use corresponding $\epsilon$-values with subscript $R$ and $I$ for the
+real and imaginary part, respectively.
+
+When an absolute error is expressed in the relative unit $\Ulp$, then
+it is easy to switch back and forth between absolute and relative errors.
+
+\begin {prop}
+\label {prop:relerror}
+Let $\appro x$ be representable at precision $p$.
+\begin {enumerate}
+\item
+If $\error (\appro x) \leq k \Ulp (\appro x)$,
+then $\relerror (\appro x) \leq k 2^{1 - p}$.
+\item
+If $\relerror (\appro x) \leq k 2^{-p}$,
+then $\error (\appro x) \leq k \Ulp (\appro x)$.
+\end {enumerate}
+These assertions remain valid if $\appro x$ is not representable at
+precision~$p$ and $\Ulp (\appro x)$ is replaced by $2^{\Exp (\appro x) - p}$.
+\end {prop}
+
+\begin {proof}
+Concerning the first assertion, we have
+$
+\relerror (\appro x) = \frac {\error (\appro x)}{|\appro x|}
+\leq
+\frac {k \Ulp (\appro x)}{|\appro x|}.
+$
+Plugging in from Definition~\ref {def:ulp} that
+$\Ulp (\appro x) = 2^{\Exp (\appro x) - p}$ and
+$|\appro x| \geq 2^{\Exp (\appro x) - 1}$ finishes the proof.
+The second assertion is proved in the same manner, using
+$|\appro x| \leq 2^{\Exp (\appro x)}$.
+\end {proof}
+
+
+\subsubsection {Complex relative error}
+\label {sssec:comrelerror}
+
+The sign of errors is not meaningful any more in the complex case, and
+only the notion of total relative error carries over.
+
+\begin {definition}
+\label {def:comrelerror}
+Given a complex number $\corr z$ and its non-zero approximation
+$\appro z$, let
+\[
+\theta = \frac {\corr z - \appro z}{\appro z},
+\text { or }
+\corr z = (1 + \theta) \appro z.
+\]
+Then the {\em relative error} of $\appro z$ is
+\[
+\relerror (\appro z) = \epsilon = | \theta |
+= \left| \frac {\corr z - \appro z}{\appro z} \right|.
+\]
+\end {definition}
+
+The following result gives a coarse
+estimate of the relative errors of the real and imaginary parts in terms of
+the complex relative error, and vice versa.
+
+\begin {prop}
+\label {prop:comrelerror}
+Let $\corr z = \corr x + i \corr y$, $\appro z = \appro x + i \appro y$,
+$\epsilon = \relerror (\appro z)$,
+$\epsilon_R = \relerror (\appro x)$ and
+$\epsilon_I = \relerror (\appro y)$. Then
+\begin {align*}
+\epsilon_R
+&\leq \left( 1 + 2^{\Exp (\appro y) - \Exp (\appro x) + 1} \right) \epsilon, \\
+\epsilon_I
+&\leq \left( 1 + 2^{\Exp (\appro x) - \Exp (\appro y) + 1} \right) \epsilon, \\
+\epsilon
+&\leq \max \left( \epsilon_R, \epsilon_I \right).
+\end {align*}
+\end {prop}
+
+\begin {proof}
+Write $\theta = \frac {\corr z - \appro z}{\appro z}
+= \theta_R + i \theta_I$. Then
+$\corr x - \appro x = \Re (\appro z \theta)
+= \appro x \theta_R - \appro y \theta_I$, and
+\begin {align*}
+\epsilon_R
+&= \left| \frac {\corr x - \appro x}{\appro x} \right|
+\leq |\theta_R| + \left| \frac {\appro y}{\appro x} \right| |\theta_I|
+\leq \left( 1 + \left| \frac {\appro y}{\appro x} \right| \right)
+\max (|\theta_R|, |\theta_I|) \\
+&\leq \left( 1 + 2^{\Exp (\appro y) - \Exp (\appro x) + 1} \right)
+|\theta|
+\end {align*}
+by Proposition~\ref {prop:expmuldiv}. The second inequality is proved
+in the same way.
+
+For the converse direction, write
+\[
+|\theta|^2
+= \frac {(\corr x - \appro x)^2 + (\corr y - \appro y)^2}{\appro x^2 + \appro y^2}
+= \frac {\epsilon_R^2 \appro x^2 + \epsilon_I^2 \appro y^2}{\appro x^2 + \appro y^2}
+\leq \max \left( \epsilon_R^2, \epsilon_I^2 \right).
+\]
+\end {proof}
+
+
+\subsection {Real functions}
+
+In this section, we derive for later use results on error propagation for
+functions with real arguments and values. Those already contained in
+\cite{MPFRAlgorithms} are simply quoted for the sake of self-containedness.
+
+
+
+\subsubsection {Division}
+\label {sssec:proprealdiv}
+
+Let
+\[
+\appro x = \frac {\appro {x_1}}{\appro {x_2}}.
+\]
+Then
+\[
+\error (\appro x) = \left|
+\frac {\corr {x_1}}{\corr {x_2}} - \frac {\appro {x_1}}{\appro {x_2}} \right|
+= \left| \frac {\appro {x_1}}{\appro {x_2}} \right|
+\cdot \left|
+1 - \left| \frac {\corr {x_1}}{\appro {x_1}} \right|
+   \cdot \left| \frac {\appro {x_2}}{\corr {x_2}} \right|
+\right|
+= | \appro x |
+\cdot \left|
+1 - \left| \frac {\corr {x_1}}{\appro {x_1}} \right|
+   \cdot \left| \frac {\appro {x_2}}{\corr {x_2}} \right|
+\right|
+\]
+Using the notation introduced in Definition~\ref {def:relerror} together
+with the obvious subscripts to the $\epsilon$, we obtain the bounds
+\[
+- \frac {\epsilon_1^+ + \epsilon_2^-}{1 - \epsilon_2^-}
+=
+1 - \frac {1 + \epsilon_1^+}{1 - \epsilon_2^-}
+\leq
+1 - \left| \frac {\corr {x_1}}{\appro {x_1}} \right|
+   \cdot \left| \frac {\appro {x_2}}{\corr {x_2}} \right|
+\leq
+1 - \frac {1 - \epsilon_1^-}{1 + \epsilon_2^+}
+=
+\frac {\epsilon_1^- + \epsilon_2^+}{1 + \epsilon_2^+}
+\]
+We need to make the assumption that $\epsilon_2^- < 1$, which is reasonable
+since otherwise the absolute error on $\appro {x_2}$ would exceed the number
+itself. Then
+\[
+\error (\appro x)
+\leq
+\max \left(
+   \frac {\epsilon_1^+ + \epsilon_2^-}{1 - \epsilon_2^-},
+   \frac {\epsilon_1^- + \epsilon_2^+}{1 + \epsilon_2^+}
+\right) |\appro x|
+\leq
+\frac {\epsilon_1 + \epsilon_2}{1 - \epsilon_2^-} 2^{\Exp (\appro x)}
+\]
+Using the estimation of the relative in terms of the absolute error of
+Proposition~\ref {prop:relerror}, this bound can be translated into
+\begin {equation}
+\label {eq:proprealdiv}
+\error (\appro x)
+\leq
+\frac {2 (k_1 + k_2)}{1 - \epsilon_2^-} 2^{\Exp (\appro x) - p}
+\leq
+\frac {2 (k_1 + k_2)}{1 - k_2 2^{1 - p}} 2^{\Exp (\appro x) - p}
+\end {equation}
+
+
+\subsubsection {Square root}
+\label {sssec:proprealsqrt}
+
+Let
+\[
+\appro x = \sqrt {\appro {x_1}}.
+\]
+Then by \cite[\S1.7]{MPFRAlgorithms},
+\begin {equation}
+\label {eq:proprealsqrt}
+\error (\appro x)
+\leq
+\frac {2 k_1}{1 + \sqrt {1 + \epsilon_1^-}} 2^{\Exp (\appro x) - p}.
+\end {equation}
+
+
+\subsubsection {Cosine and sine}
+\label {sssec:proprealcossin}
+
+Let
+\[
+\appro x = \cos {\appro {x_1}}.
+\]
+By the mean value theorem, there is a $\xi$ between $x_1$ and $\appro {x_1}$
+such that
+\[
+\cos (x_1) - \cos (\appro {x_1}) = -\sin (\xi) (x_1 - \appro {x_1}),
+\]
+so that
+\[
+\error (\appro x)
+\leq \error (\appro {x_1}).
+\]
+Taking the exponents into account, one obtains
+\begin {equation}
+\label {eq:proprealcos}
+\error (\appro x)
+\leq
+k \, 2^{\Exp (\appro {x_1}) - \Exp (\appro x)}
+\, 2^{\Exp (\appro x) - p}.
+\end {equation}
+
+For the sine function, a completely analogous argument shows that
+\eqref {eq:proprealcos} also holds.
+
+
+\subsubsection {Logarithm}
+\label {sssec:propreallog}
+
+Let
+\[
+\appro x = \log (1 + \appro {x_1})
+\]
+for $\appro {x_1} > -1$.
+By the mean value theorem, there is a $\xi$ between $x_1$ and $\appro {x_1}$
+such that
+\[
+\error (\appro x) = \frac {1}{1 + \xi} \error (\appro {x_1})
+\leq \frac {1}{1 + \min (x_1, \appro {x_1})} \error (\appro {x_1}).
+\]
+For $x_1 > 0$, this implies
+\begin {eqnarray*}
+\error (\appro x)
+& \leq & \error (\appro {x_1})
+\leq
+k \, 2^{\Exp (\appro {x_1}) - \Exp (\appro x)}
+\, 2^{\Exp (\appro x) - p} \\
+& \leq & 2 \, k \, \frac {\appro {x_1}}{\appro x} \, 2^{\Exp (\appro x) - p} \\
+& \leq & 2 \, k \, \frac {\appro {x_1}}{\appro {x_1} - \appro {x_1}^2/2}
+\, 2^{\Exp (\appro x) - p}
+\end {eqnarray*}
+using $\log (1 + z) \geq z - z^2/2$ for $z > 0$.
+For $0 < x_1 \leq 1$, we have $\appro {x_1}^2/2 \leq \appro {x_1}/2$ and
+\[
+\error (\appro x)
+\leq 4 \, k \, 2^{\Exp (\appro x) - p}.
+\]
+
+
+\subsection {Complex functions}
+
+\subsubsection {Addition/subtraction}
+
+Using the notation introduced above, we consider
+\[
+\appro z = \appro {z_1} + \appro {z_2}.
+\]
+By \eqref {eq:properror}, we obtain
+\begin{align*}
+\error (\appro x)
+& \leq | (\corr {x_1} + \corr {x_2}) - (\appro {x_1} + \appro {x_2})|
+\\
+& \leq | \corr {x_1} - \appro {x_1} | + | \corr {x_2} - \appro {x_2}|
+\\
+& \leq k_{R,1} 2^{\Exp (\appro {x_1}) - p}
++ k_{R,2} 2^{\Exp (\appro {x_2}) - p}
+\\
+& \leq \left( k_{R,1} 2^{d_{R,1}} + k_{R,2} 2^{d_{R,2}} \right)
+2^{\Exp (\appro x) - p},
+\end{align*}
+where $d_{R,n}=\Exp(\appro {x_n})-\Exp(\appro x)$.
+Otherwise said, the absolute errors add up, but their relative expression
+in terms of $\Ulp$ of the result grows if the result has a smaller
+exponent than the operands, that is, if cancellation occurs.
+
+If $\appro {x_1}$ and $\appro {x_2}$, have the same sign, then there
+is no cancellation, $d_{R, n} \leq 0$ and
+\[
+\error (\appro x) \leq (k_{R,1} + k_{R,2} + c_R) 2^{\Exp (\appro x) - p}.
+\]
+
+An analogous error bound holds for the imaginary part.
+
+For subtraction, the same bounds are obtained, except that the simpler bound
+now holds whenever $\appro {x_1}$ and $\appro {x_2}$ resp.
+$\appro {y_1}$ and $\appro {y_2}$ have different signs.
+
+
+\subsubsection {Multiplication}
+\label {sssec:propmul}
+
+Let
+\[
+\appro z = \appro {z_1} \times \appro {z_2},
+\]
+so that
+\begin {align*}
+\appro x & = \appro {x_1} \appro {x_2} - \appro {y_1} \appro {y_2}, \\
+\appro y & = \appro {x_1} \appro {y_2} + \appro {x_2} \appro {y_1}.
+\end {align*}
+Then
+\[
+\error (\appro x)
+\leq | \Re (\corr {z_1} \times \corr {z_2})
+- \Re (\appro {z_1} \times \appro {z_2})|
+\leq
+| \corr {x_1} \corr {x_2} - \appro {x_1} \appro {x_2}|
++ | \corr {y_1} \corr {y_2} - \appro {y_1} \appro {y_2}|.
+\]
+The first term on the right hand side can be bounded as follows,
+where we use the short-hand notation $\epsilon_{R, 1}^+$ for
+$\relerror^+ (\appro {x_1})$, and analogously for other relative errors:
+\begin{align*}
+| \corr {x_1} \corr {x_2} - \appro {x_1} \appro {x_2}|
+& \leq
+\frac{1}{2} \left(
+  |\appro {x_1} - \corr {x_1}| (|\appro {x_2}| + |\corr {x_2}|)
++ |\appro {x_2} - \corr {x_2}| (|\appro {x_1}| + |\corr {x_1}|)
+\right)
+\\
+& \leq \frac {1}{2} \left(
+  \epsilon_{R, 1} |\appro {x_1}| |\appro {x_2}|
+  \left( 1 + \frac {|\corr {x_2}|}{|\appro {x_2}|} \right)
++ \epsilon_{R, 2} |\appro {x_2}| |\appro {x_1}|
+  \left( 1 + \frac {|\corr {x_1}|}{|\appro {x_1}|} \right)
+  \right)
+\\
+& \leq \left(
+  k_{R, 1}
+  \left( 1 + \frac {|\corr {x_2}|}{|\appro {x_2}|} \right)
++ k_{R, 2}
+  \left( 1 + \frac {|\corr {x_1}|}{|\appro {x_1}|} \right)
+  \right) |\appro {x_1} \appro {x_2}| \, 2^{-p}
+  \text { by Proposition~\ref {prop:relerror}}
+\\
+& \leq \left(
+   k_{R, 1} (2 + \epsilon_{R, 2}^+)
+   + k_{R, 2} (2 + \epsilon_{R, 1}^+)
+   \right) 2^{\Exp (\appro {x_1} \appro {x_2}) - p}.
+\end{align*}
+In the same way, we obtain
+\[
+| \corr {y_1} \corr {y_2} - \appro {y_1} \appro {y_2}|
+\leq \left(
+   k_{I, 1} (2 + \epsilon_{I, 2}^+)
+   + k_{I, 2} (2 + \epsilon_{I, 1}^+)
+   \right) 2^{\Exp (\appro {y_1} \appro {y_2}) - p}.
+\]
+
+It remains to estimate $\Exp (\appro {x_1} \appro {x_2})$ and
+$\Exp (\appro {y_1} \appro {y_2})$ with respect to $\Exp (\appro x)$ to obtain
+a bound in terms of $\Ulp (\appro x)$. This becomes problematic when, due
+to the subtraction, cancellation occurs. In all generality, let
+$d = \Exp (\appro {x_1} \appro {x_2}) - \Exp (\appro x)
+\leq \Exp (\appro {x_1}) + \Exp (\appro {x_2}) - \Exp (\appro x)$
+by Proposition~\ref {prop:expmuldiv} and
+$d' = \Exp( \appro {y_1} \appro {y_2}) - \Exp (\appro x)
+\leq \Exp (\appro {y_1}) + \Exp (\appro {y_2}) - \Exp (\appro x)$.
+Then
+\begin {equation}
+\label {eq:propmulre}
+\error( \appro x) \leq \left(
+   \left( k_{R, 1} (2 + \epsilon_{R, 2}^+)
+   + k_{R, 2} (2 + \epsilon_{R, 1}^+) \right) 2^d
+   + \left( k_{I, 1} (2 + \epsilon_{I, 2}^+)
+   + k_{I, 2} (2 + \epsilon_{I, 1}^+) \right) 2^{d'}
+   \right) 2^{\Exp (\appro x) - p}.
+\end {equation}
+If $\appro {x_1} \appro {x_2}$ and $\appro {y_1} \appro {y_2}$ have different
+signs, then there is no cancellation, and, using the monotonicity of the
+exponent with respect to the absolute value, we obtain
+\[
+\Exp (\appro x) = \Exp (\appro {x_1} \appro {x_2} - \appro {y_1} \appro {y_2})
+= \Exp (|\appro {x_1} \appro {x_2}| + |\appro {y_1} \appro {y_2}|)
+\geq \Exp (|\appro {x_1} \appro {x_2}|), \Exp (|\appro {y_1} \appro {y_2}|),
+\]
+so that $d$, $d' \leq 0$ and the error bound simplifies as
+\[
+\error( \appro x) \leq \left(
+   k_{R, 1} (2 + \epsilon_{R, 2}^+)
+   + k_{R, 2} (2 + \epsilon_{R, 1}^+)
+   + k_{I, 1} (2 + \epsilon_{I, 2}^+)
+   + k_{I, 2} (2 + \epsilon_{I, 1}^+)
+   \right) 2^{\Exp (\appro x) - p}.
+\]
+
+The same approach yields the error of the imaginary part. Letting
+$\delta = \Exp (\appro {x_1} \appro {y_2}) - \Exp (\appro y)
+\leq \Exp( \appro {x_1}) + \Exp (\appro {y_2}) - \Exp (\appro y)$ and
+$\delta' = \Exp (\appro {x_2} \appro {y_1}) - \Exp (\appro {y})
+\leq \Exp (\appro {x_2}) + \Exp (\appro {y_1}) - \Exp (\appro y)$,
+it becomes
+\begin {equation}
+\label {eq:propmulim}
+\error( \appro y) \leq \left(
+   \left( k_{R, 1} (2 + \epsilon_{I, 2}^+)
+   + k_{I, 2} (2 + \epsilon_{R, 1}^+) \right) 2^{\delta}
+   + \left( k_{I, 1} (2 + \epsilon_{R, 2}^+)
+   + k_{R, 2} (2 + \epsilon_{I, 1}^+) \right) 2^{\delta'}
+   \right) 2^{\Exp (\appro y) - p}.
+\end {equation}
+If $\appro {x_1} \appro {y_2}$ and $\appro {x_2} \appro {y_1}$ have
+the same sign, then $\delta$, $\delta' \leq 0$ and
+\[
+\error( \appro y) \leq \left(
+   k_{R, 1} (2 + \epsilon_{I, 2}^+)
+   + k_{I, 2} (2 + \epsilon_{R, 1}^+)
+   + k_{I, 1} (2 + \epsilon_{R, 2}^+)
+   + k_{R, 2} (2 + \epsilon_{I, 1}^+)
+   \right) 2^{\Exp (\appro y) - p}.
+\]
+
+Notice that $x_1 x_2$ and $y_1 y_2$ have the same sign
+if and only if $y_1 x_2$ and $x_1 y_2$ do. So there is
+always cancellation in precisely one of the real or the imaginary part.
+
+The different values $\epsilon_{X, n}^+$ for $X \in \{ R, I \}$ and
+$n \in \{ 1, 2 \}$ in the formul{\ae} above may be bounded by
+$k_{X, n} 2^{1 - p}$ according to Proposition~\ref {prop:relerror}.
+If some $|\appro {x_n}| \geq |\corr {x_n}|$ resp.
+$|\appro {y_n}| \geq |\corr {y_n}|$ (for instance, because they have been
+computed by rounding away from zero), then the corresponding
+$\epsilon_{X, n}^+$ are zero.
+
+
+A coarser bound may be obtained more easily by considering complex
+relative errors. Write $\corr {z_n} = (1 + \theta_n) \appro {z_n}$
+with $\epsilon_n = | \theta_n |$. Then $\corr z = (1 + \theta) \appro z$
+with $\theta = \theta_1 + \theta_2 + \theta_1 \theta_2$ and
+$\epsilon = |\theta| \leq \epsilon_1 + \epsilon_2 + \epsilon_1 \epsilon_2$.
+By Proposition~\ref {prop:relerror},
+we have $\epsilon_{X, n} \leq k_{X, n} 2^{1-p}$ for $X \in \{ R, I \}$,
+and by Proposition~\ref {prop:comrelerror},
+$\epsilon_n \leq  \max (k_{R, n}, k_{I, n}) 2^{1 - p}$.
+Under normal circumstances, $\epsilon_1 \epsilon_2$ should be negligible;
+for instance, if we assume that
+$\max (k_{R, 1}, k_{I, 1}) \max (k_{R, 2}, k_{I, 2}) \leq 2^{p - 1}$,
+then $\epsilon_1 \epsilon_2 \leq 2^{1-p}$ and
+$\epsilon \leq \big( \max (k_{R, 1}, k_{I, 1}) + \max (k_{R, 2}, k_{I, 2}) + 1
+\big) 2^{1 - p}$.
+Applying Propositions~\ref {prop:comrelerror} and~\ref {prop:relerror}
+in the converse direction yields
+\begin {equation}
+\label {eq:propmulcomrel}
+\begin {array}{rl}
+\error (\appro x)
+&\leq \big( \max (k_{R, 1}, k_{I, 1}) + \max (k_{R, 2}, k_{I, 2}) + 1 \big)
+\left( 2 + 2^{\Exp (\appro y) - \Exp (\appro x) + 2} \right)
+2^{\Exp (\appro x) - p} \\
+\error (\appro y)
+&\leq \big( \max (k_{R, 1}, k_{I, 1}) + \max (k_{R, 2}, k_{I, 2}) + 1 \big)
+\left( 2 + 2^{\Exp (\appro x) - \Exp (\appro y) + 2} \right)
+2^{\Exp (\appro y) - p} \\
+\end {array}
+\end {equation}
+
+
+\subsubsection {Norm}
+\label {sssec:propnorm}
+
+Let
+\[
+\appro x = \Norm (\appro {z_1}) = |\appro {z_1}|^2
+= \appro {x_1}^2 + \appro {y_1}^2.
+\]
+Then
+\[
+\error (\appro x) \leq
+| \Norm (\corr {z_1}) - \Norm (\appro {z_1}) |
+\leq | \corr {x_1}^2 - \appro {x_1}^2 | + | \corr {y_1}^2 - \appro {y_1}^2 |.
+\]
+The first term can be bounded by
+\begin {align*}
+| \corr {x_1}^2 - \appro {x_1}^2 |
+& = |\appro {x_1}| \left| 1 + \frac {|\corr {x_1}|}{|\appro {x_1}|} \right|
+    |\corr {x_1} - \appro {x_1}| \\
+& \leq 2^{\Exp (\appro {x_1})} (2 + \epsilon_{R, 1}^+) k_{R, 1}
+2^{\Exp (\appro {x_1}) - p} \\
+& \leq k_{R, 1} (2 + \epsilon_{R, 1}^+) 2^{\Exp (\appro {x_1}^2) + 1 - p}
+\text { by Proposition~\ref {prop:expmuldiv}} \\
+& \leq 2 k_{R, 1} (2 + \epsilon_{R, 1}^+) 2^{\Exp (\appro x) - p}
+\text { by the monotonicity of the exponent.}
+\end {align*}
+The analogous bound for the second error term yields
+\begin {equation}
+\label {eq:propnorm}
+\error (\appro x) \leq
+  2 \left(
+       k_{R, 1} (2 + \epsilon_{R, 1}^+)
+     + k_{I, 1} (2 + \epsilon_{I, 1}^+)
+\right)
+2^{\Exp (\appro x) - p}
+\end {equation}
+The values $\epsilon_{X, 1}^+$ may be estimated as explained at the end
+of \S\ref {sssec:propmul}.
+
+We also need the relative lower error in the following. This can be obtained
+by writing
+\[
+\appro {x_1}^2 - \corr {x_1}^2
+=
+\left( 1 - \left| \frac {\corr {x_1}}{\appro {x_1}} \right|^2 \right)
+\cdot \appro {x_1}^2
+\leq
+\big( 1 - (1 - \epsilon_{R, 1}^-)^2 \big) \appro {x_1}^2
+=
+\big( \epsilon_{R, 1}^- (2 - \epsilon_{R, 1}^-) \big) \appro {x_1}^2.
+\]
+Adding the corresponding expression for the second term
+$\appro {x_1}^2 - \corr {x_1}^2$ yields
+\begin {equation}
+\label {eq:propnormepsminus}
+\frac {\appro x - \corr x}{\appro x}
+\leq
+\max \big(
+   \epsilon_{R, 1}^- (2 - \epsilon_{R, 1}^-),
+   \epsilon_{I, 1}^- (2 - \epsilon_{I, 1}^-)
+\big)
+=: \epsilon^-,
+\end {equation}
+and under the assumption that $\epsilon^- \geq 0$, inspection of
+Definition~\ref {def:relerror} shows that
+$\epsilon^- \geq \relerror^- (\appro x)$ since
+$\appro x$ and $\corr x$ are positive.
+
+The converse estimation yields
+\begin {equation}
+\label {eq:propnormepsplus}
+\relerror^+ (\appro x)
+\leq
+\epsilon^+
+:=
+\frac {\appro x - \corr x}{\appro x}
+\leq
+\max \big(
+   \epsilon_{R, 1}^+ (2 + \epsilon_{R, 1}^+),
+   \epsilon_{I, 1}^+ (2 + \epsilon_{I, 1}^+)
+\big)
+\end {equation}
+and $\relerror (\appro x) \leq \epsilon := \max (\epsilon^-, \epsilon^+)$.
+Letting
+$\epsilon_1 = \max ( \epsilon_{R, 1}^-, \epsilon_{R, 1}^+,
+                     \epsilon_{I, 1}^-, \epsilon_{I, 1}^+ )
+            = \max ( \epsilon_{R, 1},   \epsilon_{I, 1} )$
+and $k_1 = \max ( k_{R, 1}, k_{I, 1})$,
+we have
+$\epsilon \leq \epsilon_1 (2 + \epsilon_1) \leq 2 k_1 (2 + \epsilon_1) 2^{-p}$
+by Proposition~\ref {prop:relerror}.
+We obtain an alternative expression for the absolute error as
+\begin {equation}
+\label {eq:propnormalt}
+\error (\appro x) \leq \epsilon \appro x
+\leq
+2 k_1 (2 + \epsilon_1) 2^{\Exp (\appro x) - p}
+\end {equation}
+
+
+\subsubsection {Division}
+\label{sssec:propdiv}
+
+Let
+\[
+\appro z = \frac {\appro {z_1}}{\appro {z_2}}
+= \frac {\appro {z_1} \overline {\appro {z_2}}}{\Norm (\appro {z_2})}.
+\]
+Then the propagated error may be derived by cumulating the errors obtained
+for multiplication in \S\ref {sssec:propmul}, the norm in
+\S\ref {sssec:propnorm} and the division by a real in
+\S\ref {sssec:proprealdiv}.
+
+Let $\appro {z_3} = \appro {z_1} \overline {\appro {z_2}}
+= \appro {x_3} + i \appro {y_3}$,
+$d = \Exp (\appro {x_1} \appro {x_2}) - \Exp (\appro {x_3})$
+and $d' = \Exp (\appro {y_1} \appro {y_2}) - \Exp (\appro {x_3})$.
+Then \eqref {eq:propmulre} applies and yields
+$\error (\appro {x_3}) \leq k_{R, 3} 2^{\Exp (\appro {x_3}) - p}$
+with
+\[
+k_{R, 3} = \left( k_{R, 1} (2 + \epsilon_{R, 2}^+)
+   + k_{R, 2} (2 + \epsilon_{R, 1}^+) \right) 2^d
+   + \left( k_{I, 1} (2 + \epsilon_{I, 2}^+)
+   + k_{I, 2} (2 + \epsilon_{I, 1}^+) \right) 2^{d'}.
+\]
+We then apply \eqref {eq:propnorm} and \eqref {eq:propnormepsminus}
+to $\appro {x_4} = \Norm (\appro {z_2})$ to  obtain
+$\error (\appro {x_4}) \leq k_4 2^{\Exp (\appro {x_4}) - p}$ with
+\[
+k_4 =   2 \left(
+       k_{R, 2} (2 + \epsilon_{R, 2}^+)
+     + k_{I, 2} (2 + \epsilon_{I, 2}^+)
+\right)
+\]
+and
+\[
+\relerror (\appro {x_4}) = \epsilon_4^-
+\leq
+\max \big(
+   \epsilon_{R, 2}^- (2 - \epsilon_{R, 2}^-),
+   \epsilon_{I, 2}^- (2 - \epsilon_{I, 2}^-)
+\big).
+\]
+Now \eqref {eq:proprealdiv} shows that
+\begin {equation}
+\label {eq:propdivre}
+\error (\appro x)
+\leq
+\frac {2 (k_{R, 3} + k_4)}{1 - \epsilon_4^-} 2^{\Exp (\appro x) - p}.
+\end {equation}
+As written above, $d$ and $d'$ depend not only on the input and output, but
+also on the intermediate value $\appro {x_3}$. But noting that
+$
+\appro {x_3} = \appro x \Norm (\appro {z_2})
+\geq
+\appro x 2^{2 \max (\Exp (\appro {x_2}, \Exp (\appro {y_2})) - 2},
+$
+so that
+\begin {align*}
+d &\leq
+\Exp (\appro {x_1} \appro {x_2}) - \Exp (\appro x)
+- 2 \max (\Exp (\appro {x_2}, \Exp (\appro {y_2})) + 2, \\
+d' &\leq
+\Exp (\appro {y_1} \appro {y_2}) - \Exp (\appro x)
+- 2 \max (\Exp (\appro {x_2}, \Exp (\appro {y_2})) + 2,
+\end {align*}
+yields a bound \eqref {eq:propdivre} that is independent of
+intermediate values of the computation.
+
+The error in the imaginary part is computed in the same way as
+\begin {equation}
+\label {eq:propdivim}
+\error (\appro y)
+\leq
+\frac {2 (k_{I, 3} + k_4)}{1 - \epsilon_4^-} 2^{\Exp (\appro y) - p}.
+\end {equation}
+with
+\begin {align*}
+k_{I, 3}
+&= \left( k_{R, 1} (2 + \epsilon_{I, 2}^+)
+   + k_{I, 2} (2 + \epsilon_{R, 1}^+) \right) 2^\delta
+   + \left( k_{I, 1} (2 + \epsilon_{R, 2}^+)
+   + k_{R, 2} (2 + \epsilon_{I, 1}^+) \right) 2^{\delta'} \\
+\delta &\leq
+\Exp (\appro {x_1} \appro {y_2}) - \Exp (\appro y)
+- 2 \max (\Exp (\appro {x_2}, \Exp (\appro {y_2})) + 2 \\
+\delta' &\leq
+\Exp (\appro {x_2} \appro {y_1}) - \Exp (\appro y)
+- 2 \max (\Exp (\appro {x_2}, \Exp (\appro {y_2})) + 2
+\end {align*}
+
+As for the multiplication, a coarser
+bound may be obtained more easily using complex relative errors.
+Let $\corr {z_n} = (1 + \theta_n) \appro {z_n}$ with
+$\epsilon_n = | \theta_n |$. Then $\corr z = (1 + \theta_n) \appro z$
+with
+\[
+\theta = \frac {1 + \theta_1}{1 + \theta_2} - 1
+= (\theta_1 - \theta_2) \sum_{k = 0}^\infty (- \theta_2)^k
+\text { and }
+\epsilon \leq (|\theta_1| + |\theta_2|) \sum_{k = 0}^\infty |\theta_2|^k.
+\]
+Using the same notation and assumptions as at the end of
+\S\ref {sssec:propmul}, in particular that all higher order error terms
+(involving $\epsilon_1^2$, $\epsilon_2^2$, $\epsilon_1 \epsilon_2$
+or higher powers) are absorbed by $2^{\Exp (\appro x) - p}$,
+we find the exact same error estimate \eqref {eq:propmulcomrel}
+also for the case of division.
+
+
+\subsubsection {Logarithm}
+
+
+
+\section {Algorithms}
+
+This section describes in detail the algorithms used in \mpc, together with
+the error analysis that allows to prove that the results are correct in the
+{\mpc} semantics: The input numbers are assumed to be exact, and the output
+corresponds to the exact result rounded in the desired direction.
+
+
+\subsection {\texttt {mpc\_sqrt}}
+
+The following algorithm is due to Friedland \cite{Friedland67,Smith98}.
+Let $z = x + i y$.
+
+Let $w = \sqrt { \frac {|x| + \sqrt {x^2 + y^2}}{2}}$ and
+$t = \frac {y}{2w}$. Then $(w + it)^2 = |x| + iy$, and with the branch cut on the negative real axis we obtain
+\[
+\sqrt z = \left\{
+\begin {array}{cl}
+w + i t & \text {if } x > 0 \\
+t + i w & \text {if } x < 0, y > 0 \\
+-t - i w & \text {if } x < 0, y < 0
+\end {array}
+\right.
+\]
+
+We compute $w$ rounded down and thus round down all intermediate results.
+$\sqrt {x^2 + y^2}$ is computed with an error of \ulp{1}
+by a call to \texttt {mpc\_abs}; $|x|$ is added with an error of \ulp{1},
+since both terms are positive; division by~$2$ is free of error. So
+$w^2$ is computed with a cumulated error of \ulp{2}.
+This error of \ulp{2} propagates as is through the real square root:
+Since we rounded down the argument, we have $\epsilon_1^- = 0$ in
+\eqref {eq:proprealsqrt}; an error of \ulp{1} needs to be added for the
+rounding of $w$, so that the total error is \ulp{3}.
+
+$t$ is rounded away. Plugging the error of \ulp{3} for $w$ and \ulp{0} for $y$ into
+\eqref {eq:proprealdiv} shows that the propagated error of real division is
+\ulp{6}, to which an additional rounding error of \ulp{1} has to be added
+for a total error of \ulp{7}.
+
+
+\subsection {\texttt {mpc\_log}}
+
+Let $z = x + i y$. Then $\log (z) = \frac {1}{2} \log (x^2 + y^2) + i \atantwo (y, x)$. The imaginary part is computed by a call to the corresponding {\mpfr} function.
+
+Let $w = \log (x^2 + y^2)$, rounded down. The error of the complex norm is \ulp{1}. The generic error of the real logarithm is then given by \ulp{$2^{2 - e_w} + 1$}, where $e_w$ is the exponent of $w$. For $e_w \geq 2$, this is bounded by \ulp{2} or 2~digits; otherwise, it is bounded by \ulp{$2^{3 - e_w}$} or $3 - e_w$ digits.
+
+\subsection {\texttt {mpc\_tan}}
+
+Let $z = x + i y$ with $x \neq 0$ and $y \neq 0$.
+
+We compute $\tan z$ as follows:
+\begin{align*}
+u &\leftarrow \A(\sin z) &\error(\Re(u)) &\leq 1 \Ulp(\Re(u))
+&\error(\Im(u)) &\leq 1 \Ulp(\Im(u))
+\\
+v &\leftarrow \A(\cos z) &\error(\Re(v)) &\leq 1 \Ulp(\Re(v))
+&\error(\Im(v)) &\leq 1 \Ulp(\Im(v))
+\\
+t &\leftarrow \A(u/v) &\error(\Re(t)) &\leq k_R \Ulp(\Re(t))
+&\error(\Im(t)) &\leq k_I \Ulp(\Im(t))
+\end{align*}
+where $w_2 \leftarrow \A(w_1)$ means that the real and imaginary parts of
+$w_2$ are respectively the real and imaginary part of $w_1$ rounded away from
+zero to the working precision.
+
+We know that $\Re(\frac{a+i b}{c+i d})=\frac{a c +b d}{c^2 + d^2}$ and
+$\Im(\frac{a+i b}{c+i d})=\frac{a d -b c}{c^2 + d^2}$, so in the special case
+of $\tan z=\frac{\sin x\cosh y+i\cos x\sinh y}{\cos x\cosh y-i\sin x\sinh y}$,
+we have $abcd < 0$ which means that there might be a cancellation in the
+computation of the real part while it does never happen in the one of the
+imaginary part.  Then, using the generic error of the division (see
+\ref{sssec:propdiv}), we have
+\begin{align*}
+\error(\Re(t)) &\leq [1+2^{3+e_1}+2^{3+e_2}+2^6] \Ulp(\Re(t)),
+\\
+\error(\Im(t)) &\leq [1+2^3+2^3+2^6] \Ulp(\Im(t)),
+\end{align*}
+where $e_1=\Exp(a c) -\Exp(a c+b d)$ and $e_2=\Exp(b d) -\Exp(a c+b d)$.  The
+second inequality shows that $2^7$ is suitable choice for $k_I$. As $|\sinh
+y|<\cosh y$ for every nonzero $y$, we have $bd<ac$, thus $e_2\leq e_1$. We
+know that $\Exp(\frac{a c+b d}{c^2+d^2})\leq \Exp(a c+b d) -\Exp(c^2+d^2)$,
+$\Exp(c^2+d^2)\geq2 \min(\Exp(c), \Exp(d))$, and $\Exp(ac) \leq \Exp(a) +
+\Exp(c)$, this gives an upper bound for $e_1$:
+\[
+e_1 \leq e = \Exp(\Re(u)) +\Exp(\Re(v)) -\Exp(\Re(t))
+-2 \min(\Exp(\Re(v)), \Exp(\Im(v))).
+\]
+and a suitable value for $k_R$:
+\begin{equation*}
+k_R=\left\{
+\begin{array}{l l}
+  2^7 & \mbox{if $e < 2$;}
+  \\
+  2^8 & \mbox{if $e = 2$}
+  \\
+  2^{5 + e} & \mbox{else.}
+\end{array}
+\right.
+\end{equation*}
+
+\subsection {\texttt {mpc\_pow}}
+
+The main issue for the power function is to be able to recognize when the
+real or imaginary part of $x^y$ might be exact, since in that case
+Ziv's strategy will loop infinitely.
+If both parts of $x^y$ are known to be inexact, then we use
+$x^y = \exp(y \log x)$ and Ziv's strategy.
+After computing an integer $q$ such that $|y \log x| \leq 2^q$, we first
+approximate $y \log x$ with precision $p + q$, and then
+$\exp(y \log x)$ with precision $p \geq 4$, all with rounding
+to nearest.
+Let $\tilde{s} = \round_{p+q}(\log x)$,
+we have $\tilde{s} = (\log x) (1 + \theta_1)$
+with $\theta_1$ a complex number of norm $\leq 2^{-p-q}$.
+Let $\tilde{t} = \round_{p+q}(y \tilde{s})$, then
+$\tilde{t} = y \tilde{s} (1 + \theta_2) = (y \log x) (1 + \theta_3)^2$,
+where $\theta_2, \theta_3$ are complex numbers of norm $\leq 2^{-p-q}$,
+thus $|\tilde{t} - y \log x| \leq 2.5 \cdot 2^{-p}$ for $q \geq -3$.
+Now $\tilde{u} = \round_p(\exp(\tilde{t})) =
+x^y \exp(2.5 \cdot 2^{-p}) (1 + \theta_4) = x^y (1 + 4 \theta_5)$,
+with $\theta_4, \theta_5$ complex numbers of norm $\leq 2^{-p}$.
+
+In the remainder of this section, we determine the cases where at
+least one part of $x^y$ is exact, and for that, we assume $x$ to be
+different from the trivial cases $0$ and $1$.
+
+\begin {definition}
+A {\em dyadic real} is a real number $x$ that is exactly representable
+as a floating point number, that is, $x = m \cdot 2^e$ for some $m$, $e \in \Z$.
+A {\em dyadic complex} or {\em dyadic}, for short, is a complex number
+$x = x_1 + i x_2$ with both $x_1$ and $x_2$ dyadic reals.
+\end {definition}
+
+Recall that $\Z [i]$, the ring of Gaussian integers or integers of $\Q (i)$,
+is a principal ideal domain with units
+$\Z [i]^\ast = \{ \pm 1, \pm i \} = \langle i \rangle$,
+in which $2$ is ramified: $(2) = (2 i) = (1 + i)^2$. Let $p_0 = 1 + i$, and
+$p_k$ for $k \geq 1$ the remaining primes of $\Z [i]$. Then any element
+$x$ of $\Q (i)$ has a unique decomposition as
+$x = i^u \prod_{k \geq 0} p_k^{\alpha_k}$ with $u \in \{ 0, 1, 2, 3\}$,
+$\alpha_k \in \Z$ and almost all $\alpha_k$ equal to zero.
+
+\begin {prop}
+\label {prop:dyadic}
+The dyadics are precisely the $p_0$-units of $\Q (i)$, that is,
+the numbers $x = i^u \prod_{k \geq 0} p_k^{\alpha_k}$
+such that $\alpha_k \geq 0$ for $k \geq 1$.
+\end {prop}
+
+\begin {proof}
+This follows immediately from the fact that $p_k^{-1}$ for $k \geq 1$ is not
+dyadic, while $p_0^{-1} = \frac {1 - i}{2}$ is.
+\end {proof}
+
+Gelfond-Schneider's theorem states that if $x$ and $y$ are algebraic and
+$y$ is not rational, then $x^y$ is transcendental.
+Since all dyadic complex numbers are algebraic, this implies that $x^y$ is
+not dyadic whenever $y$ has a non-zero imaginary part.
+Unfortunately, this does not rule out the possibility that
+either the real or the imaginary part of $x^y$ might still be dyadic,
+while the other part is transcendental.
+For instance, $i^y$ is real for $y$ purely imaginary, so that
+also $x^y$ is real for $x \in \Z [i]^\ast$ and $y$ purely imaginary.
+
+\begin {conj}
+\label{conj}
+If $\Im y \neq 0$ and $x$ is not a unit of $\Z [i]$, then
+the real and the imaginary part of $x^y$ are transcendental.
+Or, more weakly, then neither the real nor the imaginary
+part of $x^y$ are dyadic reals.
+\end {conj}
+
+We then need to examine more closely the case of $y$ a dyadic real,
+and we first concentrate on positive $y$.
+
+\begin{lemma}
+\label{lemma1}
+Let $x$ be a dyadic complex and $m 2^e$ a positive dyadic real
+with $m \in \Z_{>0}$, $m$ odd and $e \in \Z$.
+Then $x^{m 2^e}$ is a dyadic complex if and only if $x^{2^e}$ is.
+\end{lemma}
+
+\begin{proof}
+Notice that by Proposition~\ref {prop:dyadic} the set of dyadics forms
+a ring, whence any positive integral power of a dyadic is again dyadic.
+Thus if $x^{2^e}$ is dyadic, then so is $x^{m 2^e}$.
+
+Conversely, assume that $x^{m 2^e}$ is dyadic. If $e \geq 0$,
+then $x^{2^e}$ is dyadic independently of the assumption,
+and it remains to consider the case $e < 0$.
+
+Write $x = i^u \prod_{k \geq 0} p_k^{\alpha_k}$
+and $z = x^{m 2^e} = i^v \prod_k p_k^{\beta_k}$, so that $x^m = z^{2^{|e|}}$.
+The uniqueness of the prime decomposition implies that
+$m \alpha_k = 2^{|e|} \beta_k$, and since $m$ is odd, $2^{|e|}$ must
+divide $\alpha_k$. Then
+$x^{2^e} = i^w \prod_k p_k^{\gamma_k}$ with $w \equiv m^{-1} v \pmod 4$ and
+$\gamma_k = \frac {\alpha_k}{2^{|e|}}$.
+Now $\alpha_k \geq 0$ for $k \geq 1$ implies $\gamma_k \geq 0$ for $k \geq 1$,
+and $x^{2^e}$ is dyadic by Proposition~\ref {prop:dyadic}.
+\end{proof}
+
+It remains to decide when $x^{2^e}$ is dyadic for $x$ dyadic. If $e \geq 0$,
+this is trivially the case. For $e < 0$, the question boils down to whether
+it is possible to take $e$ successive square roots of $x$; as soon as the
+process fails, it is clear that $x^{2^e}$ cannot be dyadic.
+
+\begin{lemma}
+\label {lm:sqrtrat}
+Let $x \in \Q (i)$, and write $x = (a + b i)^2$ with $a$, $b \in \R$.
+Then either both of $a$ and $b$ are rational, or none of them is.
+\end{lemma}
+
+\begin{proof}
+Assume that one of $a$ and $b$ is rational. Then $\Im x = 2 a b \in \Q$
+implies that also the other one is rational.
+\end{proof}
+
+\begin{lemma}
+Let $x$ be dyadic, and write $x = (a + b i)^2$ with $a$, $b \in \R$.
+Then either both of $a$ and $b$ are dyadic reals, or none of them is.
+\end{lemma}
+
+\begin{proof}
+Assume that one of $a$ and $b$ is a dyadic real, that is, a rational with
+a power of~$2$ as denominator. Then $a$, $b \in \Q$ by Lemma~\ref {lm:sqrtrat}.
+Now, $\Re x = a^2 - b^2$ implies that also the square of the \textit {a priori}
+not dyadic coefficient $a$ or $b$, and thus the coefficient itself,
+has as denominator a power of~$2$.
+\end{proof}
+
+
+\begin {theorem}
+Let $x = m 2^e$ and $y = n 2^f$ be dyadic complex numbers with $m$ and $n$ odd,
+and let $z = x^y$. Call the pair $(x, y)$ {\em exceptional} if at least
+one of $\Re z$ or $\Im z$ is a dyadic real. Exceptional pairs occur
+only in the following cases:
+\begin {enumerate}
+\item
+$y = 0$; then $z = 1$
+\item
+$x \geq 0$ and $y \neq 0$ are real; then $\Im z = 0$, and the question
+whether $\Re z = x^y$ is dyadic involves only real numbers and
+can thus be delegated to \mpfr.
+\item
+$x < 0$ and $y \neq 0$ are real.
+\begin {enumerate}
+\item
+$y \in \Z$; then $\Im z = 0$, and $\Re z = x^y$ is dyadic if and only if
+$y > 0$, or $y < 0$ and $-m = 1$.
+\item
+$y \in \frac {1}{2} \Z \backslash \Z$, that is, $f = -1$;
+then $\Re z = 0$, and $\Im z = (-x)^y$ is dyadic if and only if
+$e$ is even, $-m$ is a square, and, in case $y < 0$, $-m = 1$.
+\item
+$y \in \frac {1}{4} \Z \backslash \frac {1}{2} \Z$, that is, $f = -2$;
+then $z = \frac {1 + i}{\sqrt 2} (-x)^y$ has both real and imaginary
+dyadic parts if and only if
+$e \equiv 2 \pmod 4$, $-m$ is a fourth power, and, in case $y < 0$, $-m = 1$.
+\end {enumerate}
+\item
+$y$ not real;
+see Conjecture~\ref {conj}
+\item
+$y > 0$ real, $x$ not real;
+see above
+\item
+$y < 0$ real, $x$ not real;
+still to do
+\end {enumerate}
+\end {theorem}
+
+\begin {proof}
+\begin {enumerate}
+\item
+Clear by definition.
+\item
+Clear.
+\item
+The first two subcases $f \geq -1$ follow from the observation that
+$x^y = (-1)^y (-x)^y$, where $(-1)^y \in \langle i \rangle$.
+For $y > 0$, the number $(-x)^y$ is dyadic if and only if $(-x)^{2^f}$ is,
+which leads to the result; for $y < 0$, one furthemore needs that
+$(-m)^{-1}$ is dyadic, which for $m$ odd is only possible if $-m = 1$.
+The third subcase $f = -2$ is similar, but one needs that $(-x)^y$ is dyadic
+up to a factor of $\sqrt 2$.
+
+We proceed to show that for $f \leq -3$, there is no exceptional pair.
+Suppose that $(x, y)$ is an exceptional pair; by switching to
+$\left( x^{|n|}, \frac {y}{|n|} \right)$, we may assume
+without loss of generality that $|n| = 1$. Then $x^y$ is obtained by
+taking $|f|$ successive square roots of either $x$ or $\frac {1}{x}$, both
+of which are elements of $\Q (i)$. Lemma~\ref {lm:sqrtrat} implies
+that both $\Re (x^y)$ and $\Im (x^y)$ are rational.
+
+Write $x^y = \alpha \zeta = \alpha \zeta_r + i \alpha \zeta_i$, where
+$\alpha = (-x)^y \in \R$ and $\zeta = \zeta_r + i \zeta_i$ is a primitive root
+of unity of order~$2^{|f| + 1}$.
+Then $\alpha \zeta_r$, $\alpha \zeta_i \in \Q$ implies $\zeta \in \Q (i, \alpha)$.
+Moreover,
+$\alpha^2 = \alpha^2 (\zeta_r^2 + \zeta_i^2) =
+(\alpha \zeta_r)^2 + (\alpha \zeta_i)^2 \in \Q (i)$, so that $\Q (i, \alpha)$
+is an extension of degree at most~$4$ of $\Q$ containing $\Q (\zeta)$
+and thus a primitive $16$-th root of unity, which is impossible.
+\item
+\item
+\item
+\end {enumerate}
+\end {proof}
+
+\paragraph{Sign of zeroes.}
+When the output value has a zero real or imaginary part, its sign should be
+decided, which is not always possible if we want it to be consistent with the
+formula $x^y = \exp(y\log x)$ (in the following, we exclude $0^y$).
+
+Let $x_1$, $x_2$, $y_1$, and $y_2$ real numbers so that $x = x_1 + x_2 i$ and
+$y = y_1 + y_2 i$.
+Let $\phi \in [-\pi, +\pi]$ the argument of $x = |x| e^{i\phi}$, with the
+convention that when $x_1 < 0$ the argument of $x$ is $+\pi$ if $x_2 = +0$ and
+$-\pi$ if $x_2 = -0$.
+Then
+\[
+x^y=\exp\left(A(x,y)\right) \left(\cos B(x,y)+\sin B(x,y) i\right)
+\] where
+\begin {align*}
+  A(x,y) & =  y_1\log|x|-y_2\phi,\\
+  B(x,y) & =  y_2\log|x|+y_1\phi.
+\end {align*}
+As $|x^y| = \exp\left(A(x,y)\right)$ is positive, the value of $B(x,y)$
+determines the sign of each part of $x^y$.
+Note that $A(\overline{x},y) = A(x,\overline{y})$ and $B(\overline{x},
+y)=-B(x,\overline{y})$, so $\overline{x}^y = \overline{x^{\overline{y}}}$ and
+we can restrict the study below to $x$ with nonnegative imaginary value
+(i.e., $x_2 \geq 0$ and $\pi \geq \phi \geq 0$).
+
+To determine the sign of the zero part of $x^y$ when it is pure real or pure
+imaginary, special study is needed around points $(x, y)$ where $B(x, y)$ is a
+multiple of $\pi/2$.
+Let
+\begin {equation}
+  \label {eqn:Bk}
+  B_k(x, y) = y_2 \log|x| +y_1\phi -k\frac{\pi}{2}
+\end {equation}
+where $k$ is an integer and let $S_k$ the set of points $(x, y)$ where $B_k(x,
+y) = 0$.
+
+For any integer $k$, we assume that the surface $S_k$ is orientable and not
+reduced to a single point, then each neighborhood of a point $(x_0, y_0)$ of
+$S_k$ intersects the region where $B(x, y) > k\pi/2$ and the region where $B(x,
+y) < k\pi/2$.
+Thus for an even $k$, we can make $(x, y)$ tend continuously to $(x_0, y_0)$
+so that $\Re(x^y) > 0$ or we can make it tend to $(x_0, y_0)$ so that
+$\Re(x^y) < 0$ (the same applies with $k$ odd and $\Im(x^y)$).
+In such cases, the sign of the zero part of $x_0^{y_0}$ is not determined.
+
+However, when $S_k$ intersects an axis, for example when $\Re(x_0) = 0$, we
+have to distinguish two cases: $\Re(x_0) = +0$ and $\Re(x_0) = -0$.
+Then, if $Q_{x_0}$ (resp. $Q_{y_0}$) denotes the quadrant where $x_0$
+(resp. $y_0$) lies, it is possible that the sign of $B_k(x,y)$ remains
+constant for $(x,y)$ in the intersection $I$ of a neighborhood of $(x_0, y_0)$
+with $Q_{x_0}\times Q_{y_0}$, determining the sign of the zero part of $x^y$.
+Let $dB_k(x,y)$ be the derivative of $B_k(x, y)$, we have
+\begin {equation}
+  \label {eqn:BkDerivative}
+  dB_k(x, y)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2) =
+  \frac{x_1y_2-x_2y_1}{x_1^2+x_2^2}\delta_1 +
+  \frac{x_1y_1+x_2y_2}{x_1^2+x_2^2}\delta_2 +
+  \phi\epsilon_1 +
+  \log|x| \epsilon_2
+\end {equation}
+If $dB_k(x_0, y_0)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)$ is not
+zero and if its sign remains constant for all real numbers $\delta_1$,
+$\delta_2$, $\epsilon_1$, and $\epsilon_2$ so that $x = x_0 + \delta_1 +
+\delta_2i$, $y = y_0 +\epsilon_1 + \epsilon_2i$, and $(x,y)$ is in the given
+neighborhood $I$ of $(x_0, y_0)$ defined above, then the sign of $dB_k(x_0,
+y_0)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)$ determines the sign of
+the zero part of $x^y$.
+
+In following discussion, we write
+$B_k(x_1, x_2, y_1, y_2) := B_k(x_1+x_2i, y_1+y_2i)$,
+as a function of four real arguments.
+Let $\sigma_1 = -1,+1$ (resp. $\sigma_2$, $\rho_1$, $\rho_2$) denote the sign
+of $x_1$ (resp. $x_2$, $y_1$, $y_2$).
+\begin {enumerate}
+\item Case $B_k(\sigma_1 0, x_2, y_1, y_2)=0$ for $x_2 > 0$.
+  Here $\phi = +\frac{\pi}{2}$.
+  \begin {enumerate}
+  \item if $y_2=\rho_2 0$, then replacing $\phi$ and $y_2$ by their value in
+    (\ref{eqn:Bk}), we have $y_1= k$ and (\ref{eqn:BkDerivative}) gives
+    \[
+    dB_k(\sigma_1 0, x_2, k, \rho_2 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+    \epsilon_2) = - \frac{k}{x_2} \delta_1 + 0 \delta_2 + \frac{\pi}{2}
+    \epsilon_1 + \log(x_2) \epsilon_2
+    \]
+    where $\sigma_1 \delta_1 > 0$, and $\rho_2 \epsilon_2 > 0$ so that
+    $\delta_1 + (x_2 + \delta_2)i$ (resp. $k+\epsilon_1 + \epsilon_2 i$) is in
+    the same quadrant $Q_{x_0}$ (resp.  $Q_{y_0}$) as $x_0=\sigma_1 0 +x_2 i$
+    (resp. $y_0=k +\rho_2 0i$).
+
+    When $k \neq 0$, because, in the last expression,
+    $\epsilon_1$ would take positive as well as negative values,
+    so the sign of $\frac{\pi}{2} \epsilon_1$, and therefore the sign of
+    $dB_k(x, y)\cdot (\delta_1, \delta_2, \epsilon_1, \epsilon_2)$ is not
+    constant.
+
+    If $k=0$, then $y_1=\rho_1 0$ with $\rho_1 \epsilon_1 > 0$.
+    In this case,
+    \begin {align*}
+      dB_0(\pm 0, x_2, +0, +0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &> 0 \;\text{if}\; x_2 \geq 1 \\
+      dB_0(\pm 0, x_2, +0, -0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &> 0 \;\text{if}\; 1 \geq x_2 > 0 \\
+      dB_0(\pm 0, x_2, -0, -0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &< 0 \;\text{if}\;  x_2 \geq 1 \\
+      dB_0(\pm 0, x_2, -0, +0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &< 0 \;\text{if}\; 1 \geq x_2 > 0
+    \end {align*}
+    and the sign of $dB_k(\sigma_1 0, x_2, \rho_1 0, \rho_2 0)\cdot(\delta_1,
+    \delta_2, \epsilon_1, \epsilon_2)$ is not constant in all other
+    combinations of $k$, $\sigma_1$, $x_2>0$, $\rho_1$, and $\rho_2$.
+
+  \item if $y_2\neq 0$, then from (\ref{eqn:Bk})
+    \[
+    x_2 = \exp\left(\frac{k-y_1}{2y_2}\pi\right).
+    \]
+    But the number in the right hand side of the last equation is
+    known to be transcendental unless $k-y_1=0$.
+    As $x_2$ is dyadic, we have $y_1= k$ and $x_2=+1$.
+    Using (\ref{eqn:BkDerivative}), we write
+    \[
+    dB_k(\sigma_1 0, +1, k, y_2)\cdot(\delta_1, \delta_2, \epsilon_1,
+    \epsilon_2) = - k \delta_1 + y_2 \delta_2 + \frac{\pi}{2} \epsilon_1 + 0
+    \epsilon_2
+    \]
+    where $\sigma_1 \delta_1 > 0$.
+
+    Here, $\delta_2$ can take negative and positive values preventing the sign
+    of $dB_k(\sigma_1 0, +1, k, y_2)\cdot (\delta_1, \delta_2, \epsilon_1,
+    \epsilon_2)$ from being constant.
+  \end {enumerate}
+
+\item Case $B_k(x_1, +0, y_1, y_2)=0$ with $x_1 \neq 0$.
+      (Remember we assumed $x_2 \geq 0$.]
+  \begin {enumerate}
+  \item if $x_1 >0$, then $\phi = +0$.
+    From (\ref{eqn:Bk}), we have
+    \[
+    y_2 \log x_1 = k \frac{\pi}{2}.
+    \]
+    \begin {enumerate}
+    \item if $y_2 = \rho_2 0$, the last equation implies $k = 0$, and from
+      (\ref{eqn:BkDerivative}) we have
+      \[
+      dB_0(x_1, +0, y_1, \rho_2 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) = 0 \delta_1 + \frac{y_1}{x_1} \delta_2 + 0 \epsilon_1 +
+      \log(x_1) \epsilon_2
+      \]
+      with $\delta_2 > 0$ and $\rho_2 \epsilon_2 > 0$.
+
+      The sign of the last expression in constant only in the following
+      cases,
+      \begin {align*}
+        dB_0(x_1, +0, y_1, +0)\cdot(\delta_1, \delta_2, \epsilon_1,
+        \epsilon_2) &> 0 \;\text{if}\; y_1 \geq 0 \;\text{and}\; x_1 > 1\\
+        dB_0(+1, +0, y_1, \pm 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+        \epsilon_2) &> 0 \;\text{if}\; y_1 > 0\\
+        dB_0(x_1, +0, y_1, -0)\cdot(\delta_1, \delta_2, \epsilon_1,
+        \epsilon_2) &> 0 \;\text{if}\; y_1 \geq 0 \;\text{and}\; 1 > x_1 > 0 \\
+        dB_0(x_1, +0, y_1, -0)\cdot(\delta_1, \delta_2, \epsilon_1,
+        \epsilon_2) &< 0 \;\text{if}\; y_1 \leq 0 \;\text{and}\; x_1 > 1\\
+        dB_0(+1, +0, y_1, \pm 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+        \epsilon_2) &< 0 \;\text{if}\; y_1 < 0\\
+        dB_0(x_1, +0, y_1, +0)\cdot(\delta_1, \delta_2, \epsilon_1,
+        \epsilon_2) &< 0 \;\text{if}\; y_1 \leq 0 \;\text{and}\; 1 > x_1 > 0.
+      \end {align*}
+      Notice that we cannot conclude when $dB_0(x,y)$ is identically zero,
+      so the cases $x=+1+0i$, $y=y_1 \pm0i$ cannot be determined by this
+      means.
+
+    \item If $y_2 \neq 0$, then $x_1 = \exp\left(\frac{k}{2y_2}\pi\right)$
+      is a dyadic number only if $k=0$ and then $x_1=1$.
+      We have, using (\ref{eqn:BkDerivative}),
+      \[
+      dB_0(+1, +0, y_1, y_2)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) = y_2 \delta_1 + y_1 \delta_2 + 0 \epsilon_1 + 0
+      \epsilon_2
+      \]
+      with $\delta_2 > 0$.
+
+      Here $y_2 \delta_1$ can take negative as well as positive values
+      preventing the sign of $dB_0(+1, +0, y_1, y_2)\cdot(\delta_1,
+      \delta_2, \epsilon_1, \epsilon_2)$ from being constant.
+    \end {enumerate}
+
+  \item if $x_1 < 0$, then $\phi = \pi$.
+    Using (\ref{eqn:BkDerivative}), we have
+    \[
+    dB_k(x_1, +0, y_1, y_2)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)
+    = \frac{y_2}{x_1} \delta_1 + \frac{y_1}{x_1} \delta_2 + \pi \epsilon_1 +
+    \log(-x_1) \epsilon_2
+    \]
+    with $\delta_2 > 0$.
+
+    If $y_1 \neq 0$, then $\epsilon_1$ can take negative as well as positive
+    values, preventing $dB_k$ from having a constant sign.
+    Assume thus $y_1 = 0$.
+    As $x_1 \neq 0$, $\delta_1$ can also take negative and positive values,
+    and $-y_2 \delta_1$ does not have a constant sign unless $y_2 = 0$.
+    But from \ref {eqn:Bk}, we know that $B_k(x, 0)=0$ implies $k = 0$
+    since $x_1 = - \exp(\frac{k \pi}{2 y_2})$ is dyadic.
+
+    When $y = 0$, the derivative of $B_k$ is
+    \[
+    dB_0(x_1, +0, \rho_1 0, \rho_2 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+    \epsilon_2) = 0 \delta_1 + 0 \delta_2 + \pi \epsilon_1 + \log(-x_1)
+    \epsilon_2
+    \]
+    with $\delta_2 >0$, $\rho_1 \epsilon_1 >0$ and $\rho_2 \epsilon_2 >0$.
+
+    Then,
+    \begin {align*}
+      dB_0(x_1, +0, +0, +0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &> 0 \;\text{if}\; x_1 \leq -1 \\
+      dB_0(x_1, +0, +0, -0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &> 0 \;\text{if}\; -1 \leq x_1 < 0 \\
+      dB_0(x_1, +0, -0, -0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &< 0 \;\text{if}\; x_1 \leq -1\\
+      dB_0(x_1, +0, -0, +0)\cdot(\delta_1, \delta_2, \epsilon_1,
+      \epsilon_2) &< 0 \;\text{if}\; -1 \leq x_1 < 0
+    \end {align*}
+    and the sign of $dB_k(x_1, +0, \rho_1 0, \rho_2 0)\cdot(\delta_1,
+    \delta_2, \epsilon_1, \epsilon_2)$ is not constant in all other
+    combinations of $k$, $x_1<0$, $\rho_1$, and $\rho_2$.
+  \end {enumerate}
+
+\item Case $B_k(x_1, x_2, \rho_1 0, y_2)=0$ for $x_2 \geq 0$.
+  Here, we have
+  \[
+  y_2\log|x|-k\frac{\pi}{2} = 0.
+  \]
+  \begin{enumerate}
+  \item If $y_2=0$, then from the last equation $k=0$.
+    Using (\ref{eqn:BkDerivative})
+    \[
+    dB_0(x_1,x_2,\rho_10,\rho_20)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2) =
+    0\delta_1 + 0\delta_2 + \phi \epsilon_1 +\log|x| \epsilon_2
+    \]
+    where $\rho_1 \epsilon_1 > 0$ and $\rho_2 \epsilon_2 > 0$.
+
+    The case $\phi = 0$, that is $x_1 > 0$ and $x_2 = 0$, has already been
+    processed above in Case (b)(i).
+    Let $\phi > 0$, then $x_2$ is not zero or $x_1 < 0$.
+    Using the expression of the derivative given above, we have
+    \begin{align*}
+      dB_0(x_1, x_2, +0, +0)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)
+      &> 0 \;\text{if}\; |x| \geq 1 \;\text{and}\; \pi \geq \phi > 0\\
+      dB_0(x_1, x_2, -0, -0)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)
+      &< 0 \;\text{if}\; |x| \geq 1 \;\text{and}\; \pi \geq \phi > 0\\
+      dB_0(x_1, x_2, +0, -0)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)
+      &> 0 \;\text{if}\; 1 \geq |x| > 0 \;\text{and}\; \pi \geq \phi > 0\\
+      dB_0(x_1, x_2, -0, +0)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)
+      &< 0 \;\text{if}\; 1 \geq |x| > 0 \;\text{and}\; \pi \geq \phi > 0
+    \end{align*}
+  \item If $y_2 \neq 0$, from (\ref{eqn:Bk}), we have
+    \[
+    |x|=\exp\left(\frac{k\pi}{2y_2}\right).
+    \]
+    The right hand side of the equation is known to be transcendental
+    unless $k=0$.
+    As the left hand side is dyadic, we have $k=0$, and then $|x|=1$.
+    Here, (\ref{eqn:BkDerivative}) gives
+    \[
+    dB_0(x_1,x_2,\rho_10,y_2)\cdot(\delta_1, \delta_2, \epsilon_1, \epsilon_2)
+    = x_1y_2\delta_1 + x_2y_2\delta_2 + \phi \epsilon_1 + 0\epsilon_2
+    \]
+    with $\rho_1 \epsilon_1 > 0$.
+
+    If $x_2 \neq 0$, then $x_2y_2\delta_2$ can take negative as well as
+    positive values and the sign of the derivative is not constant.
+    Assume thus $x_2 = 0$.
+    Then, $x_1=\pm 1$ because $|x|=1$, and $x_1y_2\delta_1$ can take negative
+    and positive values.
+
+    So, the sign of the zero part of $B_k(x_1, x_2, \pm 0, y_2)$ (if any)
+    cannot be determined for all integers $k$ and for all dyadic real numbers
+    $x_1$, $x_2$, and $y_2 \neq 0$.
+  \end{enumerate}
+
+\item If $B_k(x_1, x_2, y_1, \rho_2 0)=0$ for $x_2 \geq 0$.
+  The case $y_1=0$ has already been precessed above in Case (c).
+  Let $y_1 \neq 0$, then from (\ref{eqn:Bk}) we have
+  \[
+  \phi = \frac{k}{2y_1}\pi
+  \]
+  which implies that the argument $\phi$ of $x$ can be written as $r \pi$ for
+  some rational number $r$ and, in the same time, $\cos^2 \phi =
+  x_1^2/|x|^2$ and $\sin^2 \phi = x_2^2/|x|^2$ are rational.
+
+  The five only possibilities (with $x_2 \geq 0$) are:\footnote{This is wrong:
+ consider $\phi = \pi/3$, with $\cos \phi = 1/2$ and $\sin \phi = \sqrt{3}/2$.}
+  \begin{enumerate}
+  \item $\phi = 0$, but then $x_2=0$.
+    This case has been processed above.
+  \item $\phi = \frac{\pi}{4}$, then $x_1 = x_2 > 0$.
+    From (\ref{eqn:Bk}), we have $y_1 = 2k \neq 0$, and from
+    (\ref{eqn:BkDerivative})
+    \[
+    dB_k(x_1, x_1, 2k, \rho_2 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+    \epsilon_2) = -\frac{k}{x_1}\delta_1 + \frac{k}{x_1}\delta_2 +
+    \frac{\pi}{4}\epsilon_1 + \log(\sqrt{2}x_1)\epsilon_2
+    \]
+    with $\rho_2\epsilon_2>0$.
+
+    As $x_1 \neq 0$ and $k \neq 0$, the term $\frac{k}{x_1}\delta_1$, and
+    $dB_k(x_1, x_1, 2k, \rho_2 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+    \epsilon_2)$ as well, has no constant sign.
+  \item $\phi = \frac{\pi}{2}$, then $x_1 = 0$.
+    This case has been processed above in Case (a).
+  \item $\phi = \frac{3\pi}{4}$, then $x_1 = -x_2$, $x_1 < 0$ and
+    (\ref{eqn:Bk}) gives $k \neq 0$ and $y_1 = \frac{2k}{3}$.
+    As $y_1$ is a dyadic number, the only compatible values for $k$ are
+    multiple of 3.
+    Let $n$ be a nonzero integer so that $k = 3n$ and $y_1 = 2n$.
+    From (\ref{eqn:BkDerivative}), we have
+    \[
+    dB_{3n}(-x_2, x_2, 2n, \rho_2 0)\cdot(\delta_1, \delta_2, \epsilon_1,
+    \epsilon_2) = -\frac{n}{x_2}\delta_1 - \frac{n}{x_2}\delta_2 +
+    \frac{3\pi}{4}\epsilon_1 + \log(\sqrt{2}x_2)\epsilon_2
+    \]
+    with $\rho_2\epsilon_2 >0$.
+
+    As $n \neq 0$, $\epsilon_1$ can take negative and positive values and
+    the term $\frac{3\pi}{4}\epsilon_1$ has not a constant sign.
+  \item $\phi = \pi$, then $x_1<0$ and $x_2 = 0$.
+    This case has been processed above in Case (b).
+  \end{enumerate}
+\end {enumerate}
+
+To sum up using the inequalities above and deriving those with negative $x_2$
+from them and from the relation $\overline{x}^y =
+\overline{x^{\overline{y}}}$, we can give the almost complete list of complex
+powers of numbers (for dyadic complex) that have a determined signed zero
+part, the only exception being $x=+1 \pm 0i$ raised to zero power which cannot
+be treated as we have done here.
+
+\begin{tabular}{r@{ $=$ }lr@{ $=$ }ll}
+  $x^{+0 +0i}$ & $1 +0i$,&
+  $x^{-0 -0i}$ & $1 -0i$ &
+  if $|x|>1$ and $x_2>0$\\
+  $x^{-0 +0i}$ & $1 +0i$,&
+  $x^{+0 -0i}$ & $1 -0i$ &
+  if $|x|>1$ and $x_2<0$\\
+
+  $(x_1 \pm 0i)^{\pm0 +0i}$ & $1 +0i$,&
+  $(x_1 \pm 0i)^{\pm0 -0i}$ & $1 -0i$ &
+  if $x_1>1$\\
+
+  $(x_1 +0i)^{+0 +0i}$ & $1 +0i$, &
+  $(x_1 +0i)^{-0 -0i}$ & $1 -0i$ &
+  if $|x_1|>1$\\
+  $(x_1 -0i)^{-0 +0i}$ & $1 +0i$, &
+  $(x_1 -0i)^{+0 -0i}$ & $1 -0i$ &
+  if $|x_1|>1$\\
+
+  $(x_1 +0i)^{y_1 +0i}$ & $x_1^{y_1} +0i$, &
+  $(x_1 -0i)^{y_1 -0i}$ & $x_1^{y_1} -0i$ &
+  if $x_1>1$ and $y_1>0$\\
+  $(x_1 -0i)^{y_1 +0i}$ & $x_1^{y_1} +0i$, &
+  $(x_1 +0i)^{y_1 -0i}$ & $x_1^{y_1} -0i$ &
+  if $x_1>1$ and $y_1<0$\\
+
+  $(+1 +0i)^{y_1 \pm0i}$ & $1 +0i$, &
+  $(+1 -0i)^{y_1 \pm0i}$ & $1 -0i$ &
+  if $y_1>0$\\
+  $(+1 -0i)^{y_1 \pm0i}$ & $1 +0i$, &
+  $(+1 +0i)^{y_1 \pm0i}$ & $1 -0i$ &
+  if $y_1<0$\\
+
+  $x^{+0 -0i}$ & $1 +0i$, &
+  $x^{-0 +0i}$ & $1 -0i$ &
+  if $1>|x|>0$ and $x_2>0$\\
+  $x^{-0 -0i}$ & $1 +0i$, &
+  $x^{+0 +0i}$ & $1 -0i$ &
+  if $1>|x|>0$ and $x_2<0$\\
+
+  $(x_1 \pm0i)^{\pm0 -0i}$ & $1 +0i$, &
+  $(x_1 \pm0i)^{\pm0 +0i}$ & $1 -0i$ &
+  if $1 > x_1 > 0$ \\
+
+  $(x_1 +0i)^{+0 -0i}$ & $1 +0i$, &
+  $(x_1 -0i)^{+0 +0i}$ & $1 -0i$ &
+  if $1 > |x_1| > 0$ \\
+  $(x_1 -0i)^{-0 -0i}$ & $1 +0i$, &
+  $(x_1 +0i)^{-0 +0i}$ & $1 -0i$ &
+  if $1 > |x_1| > 0$ \\
+
+  $(x_1 +0i)^{y_1 -0i}$ & $x_1^{y_1} +0i$, &
+  $(x_1 -0i)^{y_1 +0i}$ & $x_1^{y_1} -0i$ &
+  if $1 > x_1 > 0$ and $y_1 > 0$ \\
+  $(x_1 -0i)^{y_1 -0i}$ & $x_1^{y_1} +0i$, &
+  $(x_1 +0i)^{y_1 +0i}$ & $x_1^{y_1} -0i$ &
+  if $1 > x_1 > 0$ and $y_1 < 0$ \\
+
+  $(\pm 0 +x_2i)^{+0 +0i}$ & $1 +0i$, &
+  $(\pm 0 +x_2i)^{-0 -0i}$ & $1 -0i$ &
+  if $x_2 \geq 1$ \\
+  $(\pm 0 +x_2i)^{+0 -0i}$ & $1 +0i$, &
+  $(\pm 0 +x_2i)^{-0 +0i}$ & $1 -0i$ &
+  if $1 \geq x_2 > 0$ \\
+  $(\pm 0 +x_2i)^{-0 -0i}$ & $1 +0i$, &
+  $(\pm 0 +x_2i)^{+0 +0i}$ & $1 -0i$ &
+  if $ 0 > x_2 \geq -1$ \\
+  $(\pm 0 +x_2i)^{-0 +0i}$ & $1 +0i$, &
+  $(\pm 0 +x_2i)^{+0 -0i}$ & $1 -0i$ &
+  if $-1 \geq x_2$ \\
+
+  $(-1 +0i)^{+0 \pm0i}$ & $1+0i$, &
+  $(-1 +0i)^{-0 \pm0i}$ & $1-0i$ \\
+  $(-1 -0i)^{-0 \pm0i}$ & $1+0i$, &
+  $(-1 -0i)^{+0 \pm0i}$ & $1-0i$ \\
+\end{tabular}
+
+So when $x^y$ is a pure real number, the following pattern is compatible with
+the determined cases:
+
+\begin{tabular}{rl}
+  $x^y = x_1^{y_1} + \rho_2 0i$ & if $|x| > 1$\\
+  $x^y = 1 + \sigma_2 \rho_1 0i$ & if $|x| = 1$\\
+  $x^y = x_1^{y_1} - \rho_2 0i$ & if $|x| < 1$\\
+  $x^y = x_1^{y_1} + \sigma_2 \rho_1 0i$ & if $y_1 \neq 0$
+\end{tabular}
+
+where $\sigma_2$ (resp $\rho_1$, $\rho_2$) is the sign of $x_2$ (resp. $y_1$,
+$y_2$) and with the convention $0^0=+1$.
+
+\subsection {\texttt {mpc\_pow\_ui}}
+\label {ssec:mpcpowui}
+
+In the case of a positive integer exponent $n$, it may be faster to use
+binary exponentiation to compute $x^n$. More generally, let
+$n_1, \ldots, n_k$ be an addition chain for $n$, that is, $n_1 = 1$,
+$n_k = n$, and for any index $2 \leq r \leq k$, there are indices
+$1 \leq s, t \leq r-1$ such that $n_r = n_s + n_t$. Define the corresponding
+powers of $x$ as $\corr x_r = x^{n_r}$, so that $\corr x_1 = x$,
+$\corr x_k = x^n$ and $\corr x_r = \corr x_s \corr x_t$.
+The special case of left-to-right binary exponentiation
+satisfies that $n_{r+1} = 2 n_r$ (which occurs $\lfloor \log_2 n \rfloor$
+times) or $n_{r+1} = n_r + 1$ (which occurs once less than the number of
+$1$ in the binary expansion of $n$, or equivalently, once less than the
+Hamming weight of $n$); so $k \leq 2 \lfloor \log_2 n \rfloor + 1$.
+
+Instead of the correct sequence $\corr x_r$, we compute during the algorithm
+approximations $\appro x_1 = x = \corr x_1$ and
+$\appro x_r = \round (\appro x_s \appro x_t)$
+at some precision~$p$.
+Let $\theta_r$ be such that $\corr x_r = \appro x_r (1 + \theta_r)$, so that
+the relative error of $\appro x_r$ is given by $\epsilon_r = |\theta_r|$.
+Write $z_r = \appro x_s \appro x_t$.
+Then $\appro x_r = \round (z_r)$ and
+$\corr x_r = z_r (1 + \theta_s)(1 + \theta_t)$.
+
+Assuming rounding to nearest, the absolute real error attributable to
+rounding $\Re z_r$ to $\Re \appro x_r$ is bounded by
+$\frac {1}{2} \cdot 2^{\Exp (\Re z_r) - p}
+\leq \frac {1}{2} \cdot 2^{\Exp (\Re \appro x_r) - p}$
+by Proposition~\ref {prop:expround}, and the corresponding
+relative real error is bounded by $2^{-p}$ according to
+Proposition~\ref {prop:relerror}. The same holds for the imaginary part,
+and Proposition~\ref {prop:comrelerror} implies that the complex
+relative error is also bounded by $2^{-p}$. Otherwise said,
+$z_r = \appro x_r (1 + \eta_r)$ with
+some complex number $\eta_r$ such that $|\eta_r| \leq 2^{-p}$.
+Putting the equations together, we obtain
+$1 + \theta_r = (1 + \theta_s)(1 + \theta_t)(1 + \eta_r)$.
+We can thus rewrite $1 + \theta_r$ as a product of factors of the
+form $1 + \eta$ with $|\eta| \leq 2^{-p}$. Denoting by $u_r$ the
+number of such factors, we thus have $u_r = u_s + u_t + 1$, from which
+we deduce by induction, using $u_1 = 0 = n_1 - 1$,
+that $u_r = n_r - 1$.
+
+So the relative error of $\appro x_k$, compared to $x^n$, is given by
+$|\theta_k| \leq (1 + 2^{-p})^{n-1} - 1$.
+Using Propositions~\ref {prop:comrelerror}
+and~\ref {prop:relerror}, this translates into an absolute error of
+\[
+\left( 1 + 2^{\Exp (\Im \appro x_k) - \Exp (\Re \appro x_k) + 1} \right)
+\left( (1 + 2^{-p})^{n-1} - 1 \right)
+2^p \Ulp (\Re \appro x_k)
+\]
+on the real part and of
+\[
+\left( 1 + 2^{\Exp (\Re \appro x_k) - \Exp (\Im \appro x_k) + 1} \right)
+\left( (1 + 2^{-p})^{n-1} - 1 \right)
+2^p \Ulp (\Im \appro x_k)
+\]
+on the imaginary part of the result.
+
+If we further assume that $(n-1) 2^{-p} \leq 1$, then
+$(1 + 2^{-p})^{n-1} - 1 \leq 2 (n - 1) 2^{-p}$,
+because $(1+\varepsilon)^m-1 = \exp(m \log(1+\varepsilon)) - 1
+\leq \exp(\varepsilon m) - 1 \leq 2 \varepsilon m$ as long as
+$\varepsilon m \leq 1$. This gives the simplified bounds
+\begin{equation} \label{eq:powui_re}
+\left( 2 + 2^{\Exp (\Im \appro x_k) - \Exp (\Re \appro x_k) + 2} \right)
+(n-1) \Ulp (\Re \appro x_k)
+\end{equation}
+on the real part and of
+\begin{equation} \label{eq:powui_im}
+\left( 2 + 2^{\Exp (\Re \appro x_k) - \Exp (\Im \appro x_k) + 2} \right)
+(n-1) \Ulp (\Im \appro x_k)
+\end{equation}
+on the imaginary part.
+
+
+\subsection {\texttt {mpc\_pow\_si}}
+
+For the computation of $x^{-n}$ with $n > 0$, the analysis of
+\S\ref {ssec:mpcpowui} essentially carries through. We keep the same
+notation. Using bounds on the absolute errors of $\Re z_r$ and $\Im z_r$,
+we have shown above, using Propositions~\ref {prop:relerror}
+and~\ref {prop:comrelerror}, that $z_r = \appro {x_r} (1 + \eta_r)$ with
+$|\eta_r| \leq 2^{-p}$ and concluded that
+$x^n = \corr {x_k} = \appro {x_k} (1 + \theta_k)$, where
+$1 + \theta_k$ is the product of $n-1$ factors of the form
+$1 + \eta$  with $|\eta| \leq 2^{-p}$.
+By exchanging the roles of $z_r$ and $\appro {x_r}$ and applying
+Propositions~\ref {prop:relerror} and~\ref {prop:comrelerror}
+analogously, we obtain that $z_r = \frac {\appro {x_r}}{1 + \zeta_r}$ with
+$|\zeta_r| \leq 2^{-p}$ and
+$x^n = \corr {x_k} = \frac {\appro {x_k}}{1 + \xi_k}$, where
+$\xi_k$ is the product of $n-1$ factors of the form
+$1 + \zeta$  with $|\zeta| \leq 2^{-p}$.
+
+Let $\corr {x_{k+1}} = \corr {x_k}^{-1} = x^{-n}$ be the desired
+result, $z_{k+1} = \appro {x_k}^{-1}$
+and $\appro {x_{k+1}} = \round (z_{k+1})$. As shown in \S\ref {ssec:mpcpowui},
+rounding of $z_{k+1}$ to the nearest implies that
+$z_{k+1} = \appro {x_{k+1}} (1 + \eta_{k+1})$ with
+$|\eta_{k+1}| \leq 2^{-p}$.
+Then $\corr {x_{k+1}} = \frac {1}{x_k}
+= \frac {1 + \xi_k}{\appro {x_k}}
+= z_{k+1} (1 + \xi_k)
+= \appro {x_{k+1}} (1 + \xi_k)(1 + \eta_{k+1})$,
+which contains $n$ factors of the form $1 + \eta$ with
+$|\eta| \leq 2^{-p}$.
+
+Thus, assuming that $n 2^{-p} \leq 1$, the error estimates
+\eqref {eq:powui_re} and \eqref {eq:powui_im} are valid with $n$
+in the place of $n - 1$.
+
+
+
+\bibliographystyle{acm}
+\bibliography{algorithms}
+
+\end {document}
