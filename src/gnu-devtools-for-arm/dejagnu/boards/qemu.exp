@@ -1,0 +1,129 @@
+#
+# qemu_load -- load the program and execute it
+#
+# See default.exp for explanation of arguments and results.
+#
+load_generic_config "arm-dejagnu-overrides"
+
+proc qemu_spawn { dest cmdline args } {
+    if {![board_info $dest exists sim]} {
+	perror "no simulator defined for [board_info $dest name]"
+	exit 1
+    } else {
+	set sim [board_info $dest sim]
+    }
+
+    if {[board_info $dest exists sim,options]} {
+	set simflags [board_info $dest sim,options]
+    } else {
+        set simflags ""
+    }
+
+    if {![is_remote host]} {
+	if { [which $sim] == 0 } {
+	    verbose -log "Simulator $sim missing." 3
+	    return -1
+	}
+    }
+
+    if {[is_remote host]} {
+	# download the program to remote.
+	# we're assuming the program is the first word in the command.
+	# FIXME: "prog < infile" won't work until we download infile.
+	set prog [lindex $cmdline 0]
+	set prog [remote_download host $prog a.out]
+	set cmdline [lreplace $cmdline 0 0 $prog]
+    }
+
+    verbose "calling remote_spawn host" 3
+    return [eval remote_spawn host \{ $sim $simflags $cmdline \} $args ]
+}
+
+proc qemu_wait { dest timeout } {
+    return [remote_wait host $timeout]
+}
+
+proc qemu_load { dest prog args } {
+    set cmd_args ""
+    if { [llength $args] > 0 } {
+        set cmd_args "[lindex $args 0]"
+    }
+
+    set inpfile ""
+    if { [llength $args] > 1 } {
+	if { [lindex $args 1] != "" } {
+	    set inpfile "[lindex $args 1]"
+	}
+    }
+
+    if {![file exists $prog]} then {
+	perror "qemu.exp: $prog to be downloaded does not exist."
+	verbose -log "$prog to be downloaded does not exist." 3
+	return [list "untested" ""]
+    }
+
+    if {[board_info $dest exists qemu_time_limit]} {
+	set qemu_time_limit [board_info $dest qemu_time_limit]
+    } else {
+	set qemu_time_limit 240
+    }
+
+    set output ""
+
+    if { [board_info target sim,protocol] == "sid" } {
+	set cmd "-e \"set cpu-loader file [list $prog]\""
+    } elseif { [board_info target sim,protocol] == "rawsid" } {
+	set cmd "--load=$prog"
+    } else {
+	set cmd $prog
+    }
+
+    # Run the program with a limited amount of real time. While
+    # this isn't as nice as limiting the amount of CPU time, it
+    # will have to do.
+    verbose "calling remote_spawn target" 3
+    if { $inpfile != "" } {
+	set res [remote_spawn target "${cmd} $cmd_args < $inpfile" "readonly"]
+    } else {
+	set res [remote_spawn target "${cmd} $cmd_args" ]
+    }
+
+    if { $res <= 0 } {
+	return [list "fail" "remote_spawn failed"]
+    }
+
+    set state [remote_wait target $qemu_time_limit]
+    set status [lindex $state 0]
+    set output [lindex $state 1]
+    verbose "Output is $output"
+
+    set status2 [check_for_board_status output]
+    if { $status2 >= 0 } {
+	set status $status2
+    }
+
+    # FIXME: Do we need to examine $status?
+    # Yes, we do--what if the simulator itself gets an error and coredumps?
+
+    verbose "Return status was: $status" 2
+    if { $status == 0 } {
+	set result "pass"
+    } else {
+	set result "fail"
+    }
+    return [list $result $output]
+}
+
+proc qemu_download { dest file args } {
+    return [remote_download host $file $args]
+}
+
+proc qemu_upload { dest srcfile args } {
+    return [remote_upload host $srcfile $args]
+}
+
+set_board_info protocol  "qemu"
+
+# By default, assume the simulator is slow.  This causes some tests
+# to either be simplified or skipped completely.
+set_board_info slow_simulator 1

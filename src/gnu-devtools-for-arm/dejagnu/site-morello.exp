@@ -1,0 +1,33 @@
+case "$target_triplet" in {
+    { "aarch64-*-elf" } {
+	if [ info exists tool ] {
+	    switch "$tool" {
+		newlib -
+		libgloss {
+		    # The dejagnu implementation of target_compile
+		    # provided in the systems install of dejagnu
+		    # (probably /usr/share/dejagnu/target.exp, will
+		    # use the TCL global variable CFLAGS_FOR_TARGET,
+		    # it will not look into the environment variable
+		    # with the same name.  The multilib foo in
+		    # toplevel binutils and gcc actually pass the
+		    # environment variable CFLAGS.  Therefore we need
+		    # to ensure that TCL global CFLAGS_FOR_TARGET is
+		    # initialized from environment variable CFLAGS.
+		    global CFLAGS_FOR_TARGET
+		    if [ info exists env(CFLAGS) ] {
+			set CFLAGS_FOR_TARGET $env(CFLAGS)
+		    } else {
+			set CFLAGS_FOR_TARGET ""
+		    }
+		}
+	    }
+            set target_list [
+		list "aarch64-elf-aem{-mcmodel=small}" \
+		     "aarch64-elf-aem{-mcmodel=tiny}" \
+		     "aarch64-elf-morello{-march=morello}" \
+		     "aarch64-elf-morello{-march=morello+c64/-mabi=purecap}"
+	    ]
+        }
+    }
+}

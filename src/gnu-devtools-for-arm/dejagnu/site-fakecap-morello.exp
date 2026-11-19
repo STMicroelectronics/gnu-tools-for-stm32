@@ -1,0 +1,18 @@
+# Make sure we look in the right place for the board description files.
+if ![info exists boards_dir] {
+          set boards_dir {}
+}
+
+#lappend boards_dir "/usr/local/share/dejagnu/"      verbose "Global Config File: target_triplet is $target_triplet" 2
+global target_list
+
+case "$target_triplet" in {
+      { "aarch64-*-linux-gnu" } {
+              set target_list [
+                  list "unix" \
+                       "unix{-mfake-capability}" \
+              ]
+          }
+}
+
+

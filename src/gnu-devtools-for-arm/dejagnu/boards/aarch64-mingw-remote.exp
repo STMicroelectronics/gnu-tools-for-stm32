@@ -1,0 +1,23 @@
+load_generic_config "unix"
+
+# Compiler configuration
+set_board_info compiler "[find_gcc]"
+
+# network values are passed via the environment variable
+set hostname [getenv DEJAGNU_HOSTNAME]
+set username [getenv DEJAGNU_USERNAME]
+
+if { $hostname == "" } {
+    exit 1
+}
+
+if { $username == "" } {
+    exit 1
+}
+
+set_board_info hostname $hostname
+set_board_info username $username
+
+# ssh and scp configuration for remote access and file transfer
+set_board_info rsh_prog /usr/bin/ssh
+set_board_info rcp_prog /usr/bin/scp

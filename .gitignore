@@ -1,0 +1,6 @@
+/.vscode
+/arm-none-eabi
+/src/gmp/doc/gmp.info*
+/src/mpc/doc/mpc.info*
+/src/newlib-cygwin/libgloss/doc/porting.info*
+*.swp

@@ -1,0 +1,93 @@
+# Load the generic configuration for this board. This will define a basic
+# set of routines used to communicate with the board.
+load_generic_config "qemu"
+
+# No multilib flags needed by default.
+process_multilib_options ""
+
+# We only support newlib on this target. We assume that all multilib
+# options have been specified before we get here.
+set_board_info compiler "[find_gcc]"
+set_board_info cflags	"[libgloss_include_flags] [newlib_include_flags]"
+set_board_info ldflags	"[libgloss_link_flags] [newlib_link_flags]"
+
+global CC_FOR_TARGET
+if {! [info exists CC_FOR_TARGET]} {
+    set CC_FOR_TARGET "[find_gcc]"
+}
+
+# We need to figure out the sysroot PATH in order for qemu linux user
+# mode to be able to find /lib
+set sysroot [target_compile "" "" "none" "additional_flags=-print-sysroot"]
+case "$target_triplet" in {
+    { "armeb-*-linux-gnueabi*" } {
+	set_board_info sim         "qemu-armeb"
+    }
+    default {
+	set_board_info sim         "qemu-arm"
+    }
+}
+
+set_board_info is_simulator 1
+if [ info exists tool ] {
+    set sysroot [string trim [target_compile "" "" "none" "additional_flags=-print-sysroot"]]
+    switch "$tool" {
+	libgomp {
+	    set_board_info sim,options " -r 3.7.0 -s 2000000 -L $sysroot"
+	}
+	
+	default {
+	    set_board_info sim,options " -R 0  -r 3.7.0 -s 2000000 -L $sysroot"
+	}
+    }
+}
+
+
+# Runtime doesn't pass signals
+set_board_info gdb,nosignals 1
+
+# QEMU doesn't allow hardware watchpoints.
+set_board_info gdb,no_hardware_watchpoints 1
+
+# Don't expect interrupts to work in gdb testsuite
+proc set_host_info { entry value } {
+    global target_info board_info
+    verbose "set_host_info $entry $value" 3
+
+    set machine host
+    if {[info exists target_info($machine,name)]} {
+        set machine $target_info($machine,name)
+    }
+    set board_info($machine,$entry) $value
+}
+
+set_host_info gdb,nointerrupts 1
+
+# Can pass command line arguments
+#set_board_info noargs 1
+set_board_info noargs 0
+
+# Cannot return results
+#set_board_info gdb,noresults 1
+
+# Only set the following when testing GDB...
+
+# Treat as a remote board
+set_board_info use_gdb_stub 1
+
+#set_target_info gdb,start_symbol "_start"
+
+set port [expr {3000 + [clock clicks] % 2000}]
+
+# Configure TCP/IP connection to QEMU
+##set_board_info connect telnet
+set_board_info netport "localhost:$port"
+
+#set_board_info gdb,big_rx_buffers 1
+set_board_info gdb_protocol "remote"
+
+# ... or "async" or "extended-remote" or "extended-async"
+set_board_info gdb,socketport $port
+
+#set_board_info sim,options "-g $port"
+set_board_info isremote 0

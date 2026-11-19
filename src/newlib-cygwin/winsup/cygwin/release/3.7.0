@@ -1,0 +1,27 @@
+What's new:
+-----------
+
+- Support for CLOCK_TAI clock and timer.
+
+- Support for Open File Description (OFD) locks.
+
+- Support for cross-module overriding of additional new/delete overloads
+  introduced in C++14 and C++17.
+
+- Improved support for soft and hard limits in setrlimit(2), support
+  RLIMIT_NPROC.
+
+- New API: _Fork.
+
+- New API: C23 stdbit functions stdc_bit_ceil*, stdc_bit_floor*,
+  stdc_bit_width*, stdc_count_ones*, stdc_count_zeros*, stdc_first_leading_one*,
+  stdc_first_leading_zero*, stdc_first_trailing_one*, stdc_first_trailing_zero*,
+  stdc_has_single_bit*, stdc_leading_ones*, stdc_leading_zeros*,
+  stdc_trailing_ones*, stdc_trailing_zeros*.
+
+- Add support for OpenConsole.exe if available. This adds new features
+  and fixes against pseudo console based on legacy conhost.exe.
+
+- Now, a Cygwin process started from a non‑Cygwin process on a pseudo console
+  runs on a pty rather than on the console device originating from the pseudo
+  console.

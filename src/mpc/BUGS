@@ -1,0 +1,15 @@
+- Overflow and underflow are not considered in all functions, which might
+  lead to some infinite loops.
+- Also, checks are not always made for intermediate over- or underflows, which
+  may occur in the middle of the algorithms although the final result may be
+  representable.
+  For instance, if in the computation of Im (cos(x+i*y)) = -sin(x)*sinh(y)
+  an overflow occurs in sinh(y), the value sign(Im (cos(x+i*y))) * inf
+  is returned, even if sin(x) is sufficiently close to 0 such that
+  sin(x)*sinh(y) is representable. If furthermore an underflow occurred
+  in sin(x) (which has not been observed in practice), then the return
+  value would be NaN*(+-inf)=NaN.
+
+Currently, the following functions have been rewritten to solve these
+problems:
+mul, norm, sqr

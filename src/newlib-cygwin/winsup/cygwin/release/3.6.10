@@ -1,0 +1,26 @@
+Fixes:
+------
+
+- Fix deadlock in console teardown that arises from pseudo console.
+  Addresses: https://github.com/msys2/msys2-runtime/issues/338
+
+- Fix handling of surrogate pair in legacy console.
+
+- Fix behaviour with OPEN_MAX files open
+  Addresses: https://cygwin.com/pipermail/cygwin/2026-May/259664.html
+
+- Add workaround for clipboard access error.
+  Addresses: https://cygwin.com/pipermail/cygwin/2026-February/259438.html
+
+- Fix broken cursor position report resonse when a non-cygwin app starts.
+  Addresses: https://cygwin.com/pipermail/cygwin/2026-June/259776.html
+
+- Fix race issue between starting and exiting non-cygwin apps in pty.
+
+- Fix CR/NL conversion in accept_input() for pty.
+
+- Ensure the cons_master_thread runs only when it is really supposed to.
+
+- Fix NOFLSH behaviour in console a bit.
+
+- Fix typeahead input in console for bash.

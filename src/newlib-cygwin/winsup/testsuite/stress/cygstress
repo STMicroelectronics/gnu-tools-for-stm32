@@ -1,0 +1,727 @@
+#!/bin/bash
+#
+# Run stress-ng on Cygwin
+#
+# Copyright 2025 Christian Franke
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+set -e -o pipefail # pipefail is required
+
+usage()
+{
+  cat <<EOF
+Usage: ${0##*/} [OPTION...] {CI|WORK|FAIL|test...}
+
+  -c LIST   set CPU affinity to LIST
+  -e MODE   select handling of failed tests:
+              c[ont]   continue with next test [default]
+              s[kip]   continue but do not repeat the failed test
+              e[xit]   exit after first failed test
+  -f        force execution of tests tagged 'heavy' or 'admin'
+  -n        print commands only (dry-run)
+  -r N      run test set N times [default: 1]
+  -s PATH   stress-ng executable [default: stress-ng]
+  -t N      run each test for at least N seconds [default: 5]
+  -v        print stress-ng output always [default: on error only]
+  -w N      start N workers for each test [default: 2]
+
+  CI        run all tests tagged CI
+  WORK      run all tests tagged WORKS
+  FAIL      run all tests tagged FAILS
+  test...   run individual test(s) (may require '-f')
+EOF
+  exit 1
+}
+
+# Tags:
+# WORKS: works on Cygwin (3.7.0-0.192.gc85f42a4f3ee.x86_64) + stress-ng V0.19.02
+# WORKS,CI: possibly suitable subset for Cygwin CI test.
+# FAILS: fails on Cygwin, see "TODO ..." for details.
+# heavy: heavy resource usage, may work, hang, freeze desktop, require reset, ...
+# admin: requires administrator, may work or not, may be 'heavy' or not.
+# -----: unsupported due to missing API, library, declaration, ...
+
+stress_tests='
+# TEST [ARGS]   # Tag       # Comment
+  access        # FAILS     # TODO undecided: "access 004 on chmod mode 400 failed: 13 (Permission denied)"
+  acl           # WORKS,CI  # (fixed in stress-ng 0.18.12)
+  affinity      # WORKS
+  af-alg        # -----     # requires AF_ALG
+  aio           # WORKS
+  aiol          # -----     # requires io_setup(2), io_submit(2), ...
+  alarm         # WORKS,CI
+  apparmor      # -----
+  atomic        # WORKS
+
+  bad-altstack  # WORKS
+  bad-ioctl     # -----
+  besselmath    # WORKS
+  bigheap       # heavy
+  binderfs      # -----
+  bind-mount    # -----
+  bitonicsort   # WORKS
+  bitops        # WORKS
+  branch        # WORKS
+  brk           # heavy     # allocates memory until OOM
+  bsearch       # WORKS
+  bubblesort    # WORKS
+
+  cache         # WORKS
+  cacheline     # WORKS
+  cachehammer   # WORKS
+  cap           # -----
+  cgroup        # -----
+  chattr        # -----
+  chdir         # WORKS,CI
+  chmod         # WORKS,CI
+  chown         # FAILS     # TODO undecided: "fchown failed, errno=22 (Invalid argument)"
+  chroot        # admin
+  clock         # WORKS,CI  # (fixed in stress-ng 0.18.12: "timer_create failed for timer ...
+                            #  ... ''CLOCK_THREAD_CPUTIME_ID'', errno=134")
+                            # (fixed in Cygwin 3.7.0: "clock_settime was able to set an ...
+                            # ... invalid negative time for timer ''CLOCK_REALTIME''")
+  clone         # -----
+  close         # FAILS     # TODO Cygwin: close(2) is not thread-safe
+  context       # WORKS,CI  # (fixed in Cygwin 3.6.0: signals lost after swapcontext)
+  copy-file     # -----
+  cpu           # WORKS
+  cpu-online    # -----
+  cpu-sched     # FAILS     # TODO undecided: "child died: signal 9 ''SIGKILL''"
+                            # (fixed in Cygwin 3.6.0: signals lost after SIGSTOP)
+  crypt         # WORKS     # uses libcrypt
+  cyclic        # admin
+
+  daemon        # WORKS
+  dccp          # -----
+  dekker        # WORKS
+  dentry        # WORKS
+  dev           # FAILS     # TODO Cygwin: "*** fatal error in forked process - pthread_mutex::_fixup_after_fork () ...
+                            # ... doesn''t understand PROCESS_SHARED mutex''s"
+  dev-shm       # -----
+  dfp           # WORKS
+  dir           # WORKS
+  dirdeep       # heavy     # creates deep dir tree
+  dirmany       # heavy     # creates many dirs/files
+  dnotify       # -----
+  dup           # WORKS,CI
+  dynlib        # -----
+
+  easy-opcode   # WORKS
+  eigen         # WORKS     # uses libeigen (C++ template lib)
+  efivar        # -----
+  enosys        # -----
+  env           # heavy     # creates very large environment until OOM
+  epoll         # -----
+  eventfd       # -----
+  exec          # WORKS,CI
+  exit-group    # -----     # requires exit_group(2)
+  expmath       # WORKS
+
+  factor        # FAILS     # uses libgmp; TODO undecided: "terminated on signal 11 ''SIGSEGV''"
+  fallocate     # WORKS,CI
+  fanotify      # -----
+  far-branch    # WORKS
+  fault         # WORKS
+  fcntl         # WORKS,CI  # (fixed in stress-ng 0.19.00: "F_SETLKW (F_WRLCK) failed: ... errno=45 ...)"
+                            # (fixed in Cygwin 3.6.1: "ftruncate failed, errno=21 (Is a directory)")
+  fd-abuse      # FAILS     # TODO Cygwin: hangs
+  fd-fork       # WORKS,CI
+  fd-race       # -----     # TODO stress-ng: drop restriction to Linux
+                            # TODO Cygwin: close(2) is not thread-safe, see also "close"
+  fibsearch     # WORKS
+  fiemap        # -----
+  fifo          # WORKS
+  file-ioctl    # WORKS,CI
+  filename      # FAILS     # TODO Cygwin: high surrogate at the end of the string is lost, please see:
+                            #   https://sourceware.org/pipermail/cygwin/2025-June/258386.html
+                            # (fixed in Cygwin 3.7.0: lone high surrogate not encoded correctly)
+  filename --filename-opts posix # WORKS,CI # restricts filenames to POSIX charset
+  filerace      # heavy     # uses many [p]write() commands
+                            # TODO undecided: watchdog timeout may be too short
+  flipflop      # WORKS
+  flock         # WORKS     # TODO undecided: "processes left" in some cases
+  flushcache    # WORKS
+  fma           # WORKS
+  fork          # WORKS     # TODO undecided: "processes left" in some cases
+  forkheavy     # heavy     # forks until process table is full
+  fp            # WORKS,CI
+  fp-error      # WORKS,CI
+  fpunch        # WORKS,CI  # (fixed in stress-ng 0.19.00: lseek() on shared fd)
+  fractal       # WORKS
+  fsize         # heavy     # creates large files until disk is full
+  fstat         # WORKS,CI
+  full          # -----     # requires pread/pwrite() working on /dev/full
+  funccall      # WORKS
+  funcret       # WORKS
+  futex         # -----
+
+  get           # WORKS
+  getdent       # -----
+  getrandom     # -----
+  goto          # WORKS
+  gpu           # -----
+
+  handle        # -----     # requires name/open_by_handle_at(2)
+  hash          # WORKS
+  hdd           # WORKS
+  heapsort      # WORKS     # uses libbsd
+  hrtimers      # WORKS,CI  # (fixed in Cygwin 3.5.7: "timer_delete failed")
+  hsearch       # WORKS
+  hyperbolic    # WORKS
+
+  icache        # WORKS
+  icmp-flood    # -----     # requires "struct icmphdr", ... in <netinet/*.h>
+  idle-page     # -----     # requires /sys/kernel/mm/page_idle/bitmap
+  inode-flags   # -----
+  inotify       # -----     # requires inotify_*(2)
+  insertionsort # WORKS
+  intmath       # WORKS
+  io            # WORKS
+  iomix         # WORKS
+  ioport        # -----
+  ioprio        # -----
+  io-uring      # -----
+  ipsec-mb      # -----     # requires libipsec-mb
+  itimer        # WORKS,CI
+
+  jpeg          # WORKS     # uses libjpeg
+  judy          # -----     # requires libJudy (ORPHANED)
+
+  kcmp          # -----
+  key           # -----
+  kill          # WORKS,CI
+  klog          # -----
+  kvm           # -----
+
+  l1cache       # -----     # requires /sys/devices/system/cpu
+  l1cache --l1cache-line-size 32768 --l1cache-ways 8 --l1cache-sets 1 # WORKS
+  landlock      # -----
+  lease         # -----
+  led           # -----
+  link          # WORKS,CI
+  list          # WORKS
+  llc-affinity  # WORKS
+  loadavg       # WORKS
+  locka         # WORKS
+  lockbus       # WORKS
+  lockf         # WORKS,CI  # (fixed in Cygwin 3.5.5: "NtCreateEvent(lock): 0xC000003" and ...
+                            #  "can''t handle more than 910 locks per file")
+  lockmix       # WORKS
+  lockofd       # -----
+  logmath       # WORKS,CI  # (fixed in Cygwin 3.5.5: signal handler destroys long double values)
+  longjmp       # WORKS,CI  # (fixed in Cygwin 3.5.5: signals lost during setjmp or longjmp)
+  loop          # -----
+  lsearch       # WORKS
+  lsm           # -----
+
+  madvise       # WORKS
+  malloc        # WORKS,CI
+  matrix        # WORKS
+  matrix-3d     # WORKS
+  mcontend      # WORKS
+  membarrier    # -----
+  memcpy        # WORKS,CI  # (fixed in Cygwin 3.6.1: crash due to set DF in signal handler)
+  memfd         # -----
+  memhotplug    # -----
+  memrate       # WORKS
+  memthrash     # WORKS
+  mergesort     # WORKS     # uses libbsd
+  metamix       # FAILS     # TODO Cygwin: "fdatasync on ./tmp-stress-ng-metamix-*/... failed, errno=13"
+  mincore       # -----
+  min-nanosleep # WORKS
+  misaligned    # WORKS
+  mknod         # -----
+  mlock         # WORKS
+  mlockmany     # heavy     # requires --pathological
+  mmap          # WORKS,CI
+  mmapaddr      # WORKS
+  mmapcow       # WORKS
+  mmapfork      # WORKS
+  mmapfiles     # WORKS
+  mmapfixed     # WORKS
+  mmaphuge      # -----
+  mmapmany      # WORKS
+  mmaptorture   # heavy
+  module        # -----
+  monte-carlo   # WORKS
+  mpfr          # WORKS     # uses libmpfr
+  mprotect      # WORKS,CI  # (fixed in stress-ng 0.19.02: SIGALRM lost due to siglongjmp)
+                            # (fixed in Cygwin 3.7.0: crashes)
+  mq            # FAILS     # TODO undecided: "mq_[timed]receive failed, errno=1"
+                            # (fixed in Cygwin 3.5.6: crash on invalid mq fd)
+  mremap        # -----
+  mseal         # -----
+  msg           # WORKS
+  msync         # WORKS
+  msyncmany     # WORKS
+  mtx           # WORKS
+  munmap        # -----
+  mutex         # WORKS
+
+  nanosleep     # WORKS,CI  # (fixed in ?: "detected 1 unexpected nanosleep underruns")
+  netdev        # -----
+  netlink-proc  # -----
+  netlink-task  # -----
+  nice          # WORKS,CI  # (fixed in stress-ng 0.19.01: changed nice value of other processes)
+  nop           # WORKS
+  null          # WORKS
+  numa          # -----
+
+  oom-pipe      # -----
+  opcode        # -----
+  open          # WORKS,CI  # TODO undecided: "rmdir ... failed, errno=90 (Directory not empty)"
+
+  pagemove      # -----
+  pageswap      # -----
+  pci           # -----
+  personality   # -----
+  peterson      # WORKS
+  physmmap      # -----
+  physpage      # -----
+  pidfd         # -----
+  ping-sock     # -----
+  pipe          # WORKS,CI
+  pipeherd      # heavy     # many forks, may freeze desktop
+  pkey          # -----
+  plugin        # -----
+  poll          # WORKS
+  powmath       # WORKS
+  prctl         # -----
+  prefetch      # WORKS
+  prime         # FAILS     # uses libgmp; TODO undecided: "terminated on signal 11 ''SIGSEGV''"
+  prio-inv      # -----     # requires <pthread_nt.h>
+  priv-instr    # WORKS,CI  # (fixed in Cygwin 3.7.0: crashes or hangs)
+  procfs        # WORKS,CI  # (fixed in Cygwin 3.7.0: /proc/PID/maps may segfault foreign processes
+                            #  due to parallel use of RtlQueryProcessDebugInformation() on same PID)
+  pseek         # WORKS,CI  # (fixed in Cygwin 3.5.5: "pread: Bad file descriptor")
+  pthread       # WORKS,CI
+  ptr-chase     # WORKS
+  ptrace        # -----
+  pty           # WORKS,CI  # TODO undecided: "tcflush TCOOFLUSH on follower pty failed, errno=4"
+                            # (fixed in Cygwin 3.7.0: implement tcdrain/tcflow/TIOCINQ for pty)
+                            # (fixed in Cygwin 3.6.1: "No pty allocated, errno=0")
+  qsort         # WORKS
+  quota         # -----
+
+  race-sched    # WORKS
+  radixsort     # WORKS     # uses libbsd
+  ramfs         # -----
+  rawdev        # -----
+  randlist      # WORKS
+  rawsock       # -----
+  rawpkt        # -----     # requires <linux/if_packet.h>, ...
+  rawudp        # -----
+  rdrand        # WORKS
+  readahead     # -----
+  reboot        # -----
+  regex         # WORKS
+  regs          # WORKS
+  remap         # -----
+  rename        # WORKS,CI
+  resched       # heavy
+  resources     # heavy
+  revio         # WORKS
+  ring-pipe     # WORKS
+  rlimit        # heavy
+  rmap          # WORKS
+  rotate        # WORKS
+  rseq          # -----
+  rtc           # -----     # requires /dev/rtc
+
+  schedmix      # WORKS
+  schedpolicy   # WORKS,CI
+  sctp          # -----
+  seal          # -----
+  seccomp       # -----
+  secretmem     # -----
+  seek          # WORKS,CI
+  sem           # FAILS     # TODO Cygwin: "instance 0 corrupted bogo-ops counter, 556328 vs 556327"
+  sem-sysv      # FAILS     # TODO Cygwin: "aborted early, out of system resources"
+  sendfile      # -----     # requires sendfile(2)
+  session       # WORKS
+  set           # FAILS     # TODO stress-ng: "setrlimit failed, ..., expected -EPERM, instead got errno=22 (Invalid argument)"
+  shellsort     # WORKS
+  shm           # WORKS,CI
+  shm-sysv      # -----     # requires shmat(2), smdt(2)
+  sigabrt       # WORKS,CI
+  sigbus        # FAILS     # TODO Cygwin: "ftruncate file to a single page failed, errno=13 (Permission denied)"
+  sigchld       # FAILS     # TODO Cygwin: hangs
+  sigfd         # -----     # TODO Cygwin: "stressor terminated with unexpected signal 11 ''SIGSEGV''"
+                            # (fixed in stress-ng 0.19.02: drop restriction to glibc)
+  sigfpe        # WORKS,CI  # (fixed in ?: "got SIGFPE error 15 (FPE_INTDEV), expecting 20 (FPE_FLTRES)")
+  sighup        # WORKS,CI
+  sigill        # WORKS,CI  # (fixed in Cygwin 3.7.0: "terminated on signal: 11")
+  sigio         # -----     # requires O_ASYNC
+  signal        # WORKS,CI
+  signest       # FAILS     # TODO Cygwin: "terminated on signal: 11"
+  sigpending    # WORKS,CI
+  sigpipe       # FAILS     # TODO undecided: hangs in few cases
+  sigq          # WORKS,CI
+  sigrt         # WORKS,CI
+  sigsegv       # WORKS,CI  # (fixed in Cygwin 3.7.0: crashes or hangs)
+  sigsuspend    # WORKS,CI
+  sigtrap       # WORKS,CI
+  sigurg        # WORKS,CI
+  sigvtalrm     # -----     # requires ITIMER_VIRTUAL
+  sigxcpu       # FAILS     # TODO stress-ng: "setrlimit failed, errno=22 (Invalid argument)"
+  sigxfsz       # FAILS     # TODO stress-ng: "setrlimit failed, errno=22 (Invalid argument)"
+  skiplist      # WORKS
+  sleep         # WORKS,CI
+  smi           # -----
+  sock          # WORKS
+  sockabuse     # FAILS     # TODO undecided: "recv failed, errno=113 (Software caused connection abort)"
+  sockdiag      # -----
+  sockfd        # -----
+  sockmany      # heavy
+  sockpair      # WORKS
+  softlockup    # admin
+  sparsematrix  # WORKS
+  spawn         # heavy     # TODO Cygwin: "NNN spawns failed (100.00%)", may crash other processes
+  spinmem       # WORKS
+  splice        # -----
+  stack         # heavy
+  stackmmap     # WORKS
+  statmount     # -----
+  str           # WORKS
+  stream        # WORKS     # (fixed in stress-ng 0.19.02: --stream-l3-size set correctly)
+  swap          # -----
+  switch        # WORKS
+  symlink       # WORKS,CI
+  sync-file     # -----
+  syncload      # WORKS
+  sysbadaddr    # heavy
+  syscall       # FAILS     # TODO Cygwin: "terminated on signal: 11"
+  sysinfo       # WORKS
+  sysinval      # -----
+  sysfs         # -----
+
+  tee           # -----     # requires tee(2)
+  timer         # FAILS     # TODO undecided: "1 timer settime calls failed"
+  timerfd       # heavy     # TODO undecided: may freeze desktop
+  time-warp     # WORKS
+  tlb-shootdown # heavy
+  tmpfs         # -----     # requires tmpfs filesystem
+  touch         # WORKS
+  tree          # WORKS     # (fixed in Cygwin 3.6.1: crash due to set DF in signal handler, see also "memcpy")
+  trig          # WORKS
+  tsc           # WORKS
+  tsearch       # WORKS
+  tun           # -----
+
+  udp           # WORKS
+  udp-flood     # -----     # requires AF_PACKET
+  umask         # WORKS
+  umount        # -----
+  unlink        # WORKS,CI
+  unshare       # -----
+  uprobe        # -----
+  urandom       # WORKS
+  userfaultfd   # -----
+  usersyscall   # -----
+  utime         # WORKS,CI
+
+  vdso          # -----
+  veccmp        # WORKS
+  vecfp         # WORKS
+  vecmath       # WORKS
+  vecshuf       # WORKS
+  vecwide       # WORKS
+  verity        # -----
+  vfork         # WORKS
+  vforkmany     # heavy     # forks until process table is full
+  vm            # WORKS,CI
+  vm-addr       # WORKS
+  vm-rw         # -----
+  vm-segv       # WORKS
+  vm-splice     # -----
+  vma           # WORKS
+  vnni          # WORKS
+
+  wait          # FAILS     # TODO Cygwin: hangs in few cases
+  waitcpu       # WORKS
+  watchdog      # -----
+  wcs           # WORKS
+  workload      # WORKS,CI  # (fixed in Cygwin 3.5.5: hang in mq_send/receive)
+
+  x86cpuid      # WORKS
+  x86syscall    # -----
+  xattr         # FAILS     # TODO Cygwin: "fsetxattr succeeded unexpectedly, created ...
+                            # "... attribute with size greater than permitted size, errno=61"
+  yield         # WORKS
+
+  zero          # WORKS,CI
+  zlib          # WORKS     # uses libz
+  zombie        # WORKS,CI
+'
+
+error_mode="cont"; stress_ng="stress-ng"
+num_runs=1; timeout=5; workers=2
+dryrun=false; force=false; verbose=false
+taskset=
+
+while :; do case $1 in
+  -c) shift; taskset=$1 ;;
+  -e) shift; error_mode=$1 ;;
+  -f) force=true ;;
+  -n) dryrun=true ;;
+  -r) shift; num_runs=$1 ;;
+  -s) shift; stress_ng=$1 ;;
+  -t) shift; timeout=$1 ;;
+  -v) verbose=true ;;
+  -w) shift; workers=$1 ;;
+  -*) usage ;;
+  *) break ;;
+esac; shift || usage; done
+[[ "${num_runs}${timeout}${workers}" =~ ^[0-9]*$ ]] || usage
+
+skip_after_failure=false; exit_after_failure=false
+case $error_mode in
+  c|cont) skip_after_failure=false; exit_after_failure=false ;;
+  s|skip) skip_after_failure=true;  exit_after_failure=false ;;
+  e|exit) skip_after_failure=false; exit_after_failure=true ;;
+  *) usage ;;
+esac
+
+run_ci=false; run_work=false; run_fail=false;
+declare -A run_tests=()
+
+while [ $# -ge 1 ]; do case $1 in
+  CI) run_ci=true ;;  WORK) run_work=true ;; FAIL) run_fail=true ;;
+  [a-z]*[a-z]) run_tests["$1"]=t ;;
+  *) usage ;;
+esac; shift; done
+$run_ci || $run_work || $run_fail || [ ${#run_tests[*]} -gt 0 ] || usage
+
+command -V "$stress_ng" >/dev/null || exit 1
+
+# SIGKILL may not work if stress-ng hangs.
+# Use Windows 'taskkill' as no 'killall --force' is available.
+command -V taskkill >/dev/null || exit 1
+
+stress_ng_name=${stress_ng##*/}
+tempdir=${TMP:-/tmp}
+logdir=${LOGDIR:-/tmp/logdir}
+
+mkdir -p "$logdir"
+
+find_stress()
+{
+  local p=$(procps -C "$stress_ng_name" -o pid,ppid,s,pri,ni,tt,start,time,args --sort pid)
+  test "$(wc -l <<< "$p")" -gt 1 || return 1
+  echo "$p"
+}
+
+stop_stress()
+{
+  echo '$' taskkill /F /T /IM "${stress_ng_name}.exe"
+  taskkill /F /T /IM "${stress_ng_name}.exe" ||:
+}
+
+ts()
+{
+  date '+%H:%M:%S.%2N'
+}
+
+total_tested=0; total_failed=0
+total_testcases=0
+stopped=false
+
+# stress TEST [OPTION...]
+stress()
+{
+  local name=$1
+  shift || return 1
+
+  local td="$tempdir/stress-ng.$$.$total_tested.d"
+  local logfile="$logdir/$name"
+  local cmd=("$stress_ng" -v -M --oomable --timestamp --verify --temp-path "$td" -t "$timeout")
+  test -z "$taskset" || cmd+=(--taskset "$taskset")
+  cmd+=(--"$name" "$workers" "$@")
+
+  if $dryrun || $verbose; then
+    echo '$' "${cmd[@]}"
+    ! $dryrun || return 0
+  fi
+
+  (
+    t=$(date +%s); : $((t += timeout + 30)); sleep 1
+    while [ "$(date +%s)" -lt "$t" ]; do sleep 1; done
+    # Another delay to let 'exit 0' occur before 'kill $watchdog'
+    ( sleep 1; stop_stress ) &
+    exit 0
+  ) &
+  watchdog=$!
+
+  mkdir "$td"
+  local rc=0
+  if $verbose; then
+    # This requires '-o pipefail'
+    "${cmd[@]}" 2>&1 | tee "$logfile" || rc=$?
+  else
+    "${cmd[@]}" >"$logfile" 2>&1 || rc=$?
+  fi
+
+  kill $watchdog 2>/dev/null ||:
+
+  local errs=
+  if wait $watchdog; then
+    errs=", command hangs"
+    sleep 2
+  fi
+  watchdog=
+  ! $stopped || return 0
+
+  local p
+  if p=$(find_stress); then
+    errs+=", processes left"
+    stop_stress
+    sleep 2
+  fi
+
+  rmdir "$td" 2>/dev/null || errs+=", files left in '$td'"
+
+  ! grep -qv '^stress-ng:' "$logfile" || errs+=", unexpected output"
+
+  if [ "${rc}${errs:+t}" != "0" ]; then
+    $verbose || cat "$logfile"
+    ! [ ${p:+t} ] || echo "$p"
+    echo ">>> FAILURE: $(ts): $name" "$@" "(exit status ${rc}${errs})"
+    echo
+    return 1
+  fi
+
+  ! grep '^stress-ng:.* fail:' "$logfile" || set -- "$@" "(warning: 'fail:' messages)"
+  echo ">>> SUCCESS: $(ts): $name" "$@"
+  ! $verbose || echo
+  return 0
+}
+
+if p=$(find_stress); then
+  echo "*** Other $stress_ng_name processes are still running:"
+  echo "$p"
+  $dryrun || exit 1
+fi
+
+tests=()
+
+while read; do
+  args=${REPLY#*|}
+
+  run_this=false
+  if [ -n "${run_tests["$args"]}" ]; then
+    run_this=true; unset run_tests["$args"]
+  fi
+
+  tag=${REPLY%%|*}
+  case $tag in
+    FAILS) $run_this || $run_fail || continue ;;
+    WORKS) $run_this || $run_work || continue ;;
+    WORKS,CI) $run_this || $run_work || $run_ci || continue ;;
+    -----) $run_this || continue ;;
+    admin|heavy)
+      $run_this || continue
+      if ! $force; then
+        echo ">>> SKIPPED: $args (tagged '$tag', use '-f' to override)"
+        continue
+      fi ;;
+    *) echo "*** syntax error: '$REPLY'"; exit 1 ;;
+  esac
+
+  tests+=("$args")
+done <<<"$(
+  sed -E \
+    -e 's/^ *([-0-9a-z]+)( +-[^#]*[^ #])? +# *(FAILS|WORKS(,CI)?|admin|heavy|-----) *(#.*)?$/\3|\1\2/' \
+    -e '/^ *(#.*)?$/d' \
+    <<<"$stress_tests"
+)"
+
+if [ ${#run_tests[*]} != 0 ]; then
+  for t in "${!run_tests[@]}"; do
+    echo "$t: unknown test"
+  done
+  exit 1
+fi
+
+tests_run=()
+tests_failed=()
+
+watchdog=
+trap '
+  test -z "$watchdog" || kill $watchdog 2>/dev/null ||:
+  stopped=true
+' SIGINT SIGTERM
+
+echo ">>> STARTED: $(ts)"
+
+for ((r = 0; r < num_runs; r++)); do
+  curr_tested=0; curr_failed=0; curr_skipped=0
+
+  for ((t = 0; t < ${#tests[*]}; t++)); do
+    if $skip_after_failure && [ -n "${tests_failed[t]}" ]; then
+      echo ">>> -------: $(ts): ${tests[t]}"
+      : $((++curr_skipped))
+      continue
+    fi
+
+    rc=0
+    stress ${tests[t]} || rc=$?
+
+    if $stopped; then
+      echo ">>> STOPPED: $(ts): ${tests[t]}"
+      echo
+      break
+    fi
+
+    : $((++curr_tested)) $((++total_tested)) $((++tests_run[t]))
+    test $total_testcases -gt $t || total_testcases=$((t + 1))
+
+    if [ $rc != 0 ]; then
+      : $((++curr_failed)) $((++total_failed)) $((++tests_failed[t]))
+      ! $exit_after_failure || break
+    fi
+  done
+
+  test $num_runs -gt 1 || break
+
+  if [ $curr_failed != 0 ]; then
+    echo -n ">>> FAILURE: $(ts): run $((r+1)) of $num_runs: $curr_failed of $curr_tested test(s) failed"
+  else
+    echo -n ">>> SUCCESS: $(ts): run $((r+1)) of $num_runs: all $curr_tested test(s) succeeded"
+  fi
+  test $curr_skipped = 0 || echo -n "; $curr_skipped test(s) skipped"
+  if [ $total_failed != 0 ]; then
+    echo "; total: $total_failed of $total_tested test(s) failed"
+  else
+    echo "; total: all $total_tested test(s) succeeded"
+  fi
+  echo
+
+  ! $stopped || break
+  ! $exit_after_failure || [ $curr_failed = 0 ] || break
+  ! $skip_after_failure || [ $curr_failed -lt $curr_tested ] || break
+done
+
+if [ $total_failed != 0 ]; then
+  if [ $num_runs -gt 1 ]; then
+    echo ">>> SUMMARY:"
+    for ((t = 0; t < ${#tests[*]}; t++)); do
+      if [ -n "${tests_failed[t]}" ]; then
+        echo ">>> FAILURE: ${tests[t]}: ${tests_failed[t]} of ${tests_run[t]} test(s) failed"
+      else
+        test -z "${tests_run[t]}" \
+        || echo ">>> SUCCESS: ${tests[t]}: all ${tests_run[t]} test(s) succeeded"
+      fi
+    done
+    echo
+  fi
+
+  echo -n ">>> FAILURE: $(ts): ${#tests_failed[*]} of $total_testcases test case(s) failed"
+  echo "; total: $total_failed of $total_tested test(s) failed"
+  exit 1
+fi
+
+echo -n ">>> SUCCESS: $(ts): all test(s) of $total_testcases test case(s) succeeded"
+echo "; total: $total_tested test(s)"
+exit 0

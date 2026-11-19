@@ -1,0 +1,5 @@
+# Increase stack limit, to the same value that GCC tries to change to at
+# startup on Linux, as GCC turns out to need that much more to pass all the
+# limits-* tests.
+LDFLAGS += -Wl,--stack,67108864
+BOOT_LDFLAGS += -Wl,--stack,67108864

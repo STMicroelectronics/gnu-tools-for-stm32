@@ -1,0 +1,66 @@
+Fixes:
+------
+
+- Fix undesired behaviour of console master thread in win32-input-mode
+  which is supported by Windows Termainal.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-August/256380.html
+
+- Fix a regression in 3.5.4 that writing to pipe extremely slows down.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-August/256398.html
+
+- Fix pread() and pwrite() EBADF error after fork().
+  Addresses: https://sourceware.org/pipermail/cygwin/2024-September/256468.html
+
+- Fix timer_delete() return value which always indicated failure.
+
+- Fix lockf() error which occurs when adding a new lock over multiple
+  locks.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-October/256528.html
+
+- Make lockf() return ENOLCK when the number of locks exceeds
+  MAX_LOCKF_CNT rather than printing a warning message.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-October/256528.html
+
+- Make console inherit hand over of pseudo console ownership from
+  parent pty.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-February/255388.html
+
+- Restore pipe blocking mode for non-cygwin apps.
+  Addresses: https://github.com/git-for-windows/git/issues/5115
+
+- Fix a problem that signal handler destroys the FPU context.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-October/256503.html
+
+- Fix type of pthread_sigqueue() first parameter to match Linux.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-September/256439.html
+
+- Fix potential stack corruption in rmdir() in a border case.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-November/256774.html
+
+- Fix access violation in lf_clearlock() called from flock().
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-November/256750.html
+
+- Fix NtCreateEvent() error in create_lock_ob() called from flock().
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-November/256750.html
+
+- Fix segfault in sigtimedwait() when using timeout.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-November/256762.html
+
+- sched_setscheduler(2) allows to change the priority if the policy is
+  equal to the value returned by sched_getscheduler(2).
+
+- Fix frequent page fault caused in Windows Terminal.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-December/256841.html
+
+- Fix using invalid chars in temporary file names for deleted files.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-November/256813.html
+
+- Fix losing signals during setjmp/longjmp.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-November/256808.html
+
+- Fix several problems triggered when a lot of SIGSTOP/SIGCONT signals
+  are received rapidly.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-November/256744.html
+
+- Fix the protection when mmap(2) recycles unused pages.
+  Addresses: https://cygwin.com/pipermail/cygwin/2024-December/256911.html

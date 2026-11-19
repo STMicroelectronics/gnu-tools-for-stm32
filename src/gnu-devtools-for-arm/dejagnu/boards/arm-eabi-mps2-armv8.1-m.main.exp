@@ -1,0 +1,10 @@
+case "$target_triplet" in {
+    { "armeb-*-eabi*" "armeb-*-elf*"} {
+	set mps2_aem_m_version "--model=mps2 --arch=armv8.1-m.main --bigendian"
+    }
+    default {
+	set mps2_aem_m_version "--model=mps2 --arch=armv8.1-m.main"
+    }
+}
+set startup_link_option "-Wl,-Ttext-segment=0x00500000"
+load_board_description "arm-eabi-mps2"

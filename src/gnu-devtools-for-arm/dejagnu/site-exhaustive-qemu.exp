@@ -1,0 +1,63 @@
+# Set a default target list for arm and aarch64 Linux and baremetal target triplets.
+# The list put into the variables here must be used for all the below components,
+# except for the binutils and GDB, which have their own setup.
+
+load_lib framework.exp
+
+set standard_arm_eabi_target_list [list "arm-eabi-qemu-ar-class{-marm/-march=armv7-a/-mfloat-abi=soft/-mfpu=auto}" \
+									"arm-eabi-qemu-ar-class{-mthumb/-march=armv8-a+simd/-mfloat-abi=hard/-mfpu=auto}" \
+									"arm-eabi-qemu-cortex-m0{-mthumb/-mcpu=cortex-m0}" \
+									"arm-eabi-qemu-cortex-m3{-mthumb/-mcpu=cortex-m3}" \
+									"arm-eabi-qemu-cortex-m7{-mthumb/-mcpu=cortex-m7/-mfloat-abi=hard}" \
+									"arm-eabi-qemu-cortex-m33{-mthumb/-mcpu=cortex-m23}" \
+									"arm-eabi-qemu-cortex-m33{-mthumb/-mcpu=cortex-m33/-mfloat-abi=hard}" \
+									"arm-eabi-qemu-cortex-m55{-mthumb/-mcpu=cortex-m55/-mfloat-abi=hard}" \
+								   ]
+
+set standard_arm_eabi_target_libs_list [list "arm-eabi-qemu-ar-class{-marm/-march=armv7-a/-mfloat-abi=soft/-mfpu=auto}" \
+										"arm-eabi-qemu-ar-class{-mthumb/-march=armv8-a+simd/-mfloat-abi=hard/-mfpu=auto}" \
+										"arm-eabi-qemu-cortex-m0{-mthumb/-mcpu=cortex-m0}" \
+										"arm-eabi-qemu-cortex-m3{-mthumb/-mcpu=cortex-m3}" \
+										"arm-eabi-qemu-cortex-m7{-mthumb/-mcpu=cortex-m7/-mfloat-abi=hard}" \
+										"arm-eabi-qemu-cortex-m33{-mthumb/-mcpu=cortex-m23}" \
+										"arm-eabi-qemu-cortex-m33{-mthumb/-mcpu=cortex-m33/-mfloat-abi=hard}" \
+										"arm-eabi-qemu-cortex-m55{-mthumb/-mcpu=cortex-m55/-mfloat-abi=hard}" \
+									   ]
+
+set standard_arm_lnx_target_list [list "arm-lnx-qemu" \
+				       "arm-lnx-qemu{-fPIC}" \
+				       ]
+
+set standard_aarch64_elf_target_list [list "aarch64-elf-qemu{-mcmodel=small}" \
+					   "aarch64-elf-qemu{-mcmodel=small/-fPIC}" \
+					   "aarch64-elf-qemu{-mcmodel=tiny}" \
+					   "aarch64-elf-qemu{-mcmodel=tiny/-fPIC}" \
+					   "aarch64-elf-qemu{-march=armv8.6-a+sve}" \
+					   ]
+
+set standard_aarch64_elf_target_libs_list [list "aarch64-elf-qemu{-mcmodel=small}" \
+					   "aarch64-elf-qemu{-mcmodel=small/-fPIC}" \
+					   "aarch64-elf-qemu{-mcmodel=tiny}" \
+					   "aarch64-elf-qemu{-mcmodel=tiny/-fPIC}" \
+					   "aarch64-elf-qemu{-march=armv8.6-a+sve}" \
+					   ]
+
+set standard_aarch64_lnx_target_list [list "aarch64-lnx-qemu" \
+					   "aarch64-lnx-qemu{-fPIC}" \
+					   "aarch64-lnx-qemu{-mcmodel=tiny}" \
+					   "aarch64-lnx-qemu{-mcmodel=tiny/-fPIC}" \
+					   "aarch64-lnx-qemu{-march=armv8.6-a+sve}" \
+					   ]
+
+set arm_binutils_list  [ list "arm-eabi-qemu-ar-class{-mcpu=cortex-a5}"  \
+			      "arm-eabi-qemu-cortex-m0{-mthumb/-mcpu=cortex-m0}" \
+			      ]
+
+set arm_gdb_list [list "arm-eabi-qemu-ar-class{-mcpu=cortex-a9/-mfpu=neon/-mfloat-abi=softfp}"]
+
+set aarch64_binutils_list  [list "aarch64-elf-qemu{-mcmodel=small}" \
+				 "aarch64-elf-qemu{-mcmodel=tiny}" \
+				 ]
+set aarch64_gdb_list [list "aarch64-elf-qemu{-mcpu=cortex-a53}"]
+
+source "[ file dirname [ file normalize [ info script ] ] ]/site-expand-list.exp"

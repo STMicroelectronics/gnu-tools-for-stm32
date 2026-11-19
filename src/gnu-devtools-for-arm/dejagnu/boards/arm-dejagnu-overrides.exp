@@ -1,0 +1,342 @@
+# Overriding some dejagnu internal procedures.
+
+# See prune_warnings and default_target_compile in 
+# $DEJAGNU_INSTALL/share/target.exp and local_exec and standard_wait in
+# $DEJAGNU_INSTALL/share/remote.exp.
+
+# For prune_warnings:
+# The reason we have this defined here is because of our policies
+# with respect to printing out a warning every time the compiler is 
+# invoked on some of our internal branches that the compiler isn't
+# suitable for the testsuites.
+
+# All routines in all the testsuites in the gcc tree that appear to use
+# dejagnu look like they end up calling default_target_compile to
+# compile the files which ends up calling prune_warnings to 
+# prune out any unnecessary warnings. This originally overrode
+# default_target_compile but for reasons not fully understood the 
+# gdb testsuite did not like the additional regsubs while compiling
+# some of the tests in the ada testsuite even on a system where there 
+# was no ada compiler.
+
+# So, where is this a problem ?
+
+# * If you have needs_status_wrapper on in your target board file, then
+#   the status wrapper gets built, *but* because there is chatter on
+#   stderr, the world thinks that gcc-testglue.o isn't built so wrap
+#   flags fail to get added. This is why the earlier attempt at this
+#   left us with so many execution failures.
+
+# * Additionally in the libstdc++ testsuite one has a situation with
+#   similar helper files and functions e.g. testsuite_abi.cc .
+
+# So it seemed the best bet was to actually just override this function
+# in the top level board file in our "boards" directory to prune the
+# additional messages the intengrel compiler spits out.
+
+# The only time when this needs to be reviewed is whenever we migrate
+# upwards on a version of dejagnu or find a usecase that we can't handle
+# easily enough. Otherwise this appears to be the best bet today. I
+# don't particularly like having to do this but this is the least
+# invasive and the change that possibly is with the lowest risk.
+
+
+global prune_warnings
+
+
+# Remove extraneous warnings from TEXT.
+#
+# An example is:
+# ld.so: warning: /usr/lib/libc.so.1.8.1 has older revision than expected 9
+#
+proc prune_warnings { text } {
+    global host_triplet
+
+    # remove the \r part of "\r\n" so we don't break all the patterns
+    # we want to match.
+    regsub -all -- "\r" $text "" text
+
+    # Ignore these.
+    regsub -all "(^|\n)\[^\n\]*linker input file unused since linking not done" $text "" text
+    regsub -all "(^|\n)\[^\n\]*file path prefix \[^\n\]* never used" $text "" text
+
+    # This happens when testing across NFS.
+    regsub -all "(^|\n)((NFS|nfs) server \[^\n\]* not responding\[^\n\]*\n?)+" $text "\\1" text
+    regsub -all "(^|\n)((NFS|nfs) server \[^\n\]* (ok|is alive again)\[^\n\]*\n?)+" $text "\\1" text
+
+    # GNU ld warns about functions marked as dangerous in GNU libc.
+    regsub -all "(^|\n)\[^\n\]*: In function\[^\n\]*\n\[^\n\]\[^\n\]*is dangerous\[^\n\]*" $text "" text
+    regsub -all "(^|\n)\[^\n\]*: In function\[^\n\]*\n\[^\n\]\[^\n\]*the use of \[^\n\]* is dangerous, better use \[^\n\]*" $text "" text
+    regsub -all "(^|\n)\[^\n\]*is dangerous\[^\n\]*" $text "" text
+
+     # Libgloss libnosys defines functions that warn when linked in
+    regsub -all "(^|\n)\[^\n\]*: In function\[^\n\]*\n\[^\n\]\[^\n\]*is not implemented and will always fail\[^\n\]*" $text "" text
+    regsub -all "(^|\n)\[^\n\]*is not implemented and will always fail\[^\n\]*" $text "" text
+
+    # libstdc++-v3 tests can emit cpplib warnings due to duplicate -isystem / -I flags
+    regsub -all "(^|\n)\[^\n\]*: warning: changing search order for system directory\[^\n\]*" $text "" text
+    regsub -all "(^|\n)\[^\n\]*: warning:   as it has already been specified\[^\n\]*" $text "" text
+
+    # Cygwin cc1 warns about -fpic and -fPIC
+    regsub -all "(^|\n)\[^\n\]*: warning: -f(pic|PIC) ignored for target \[^\n\]*" $text "" text
+
+    # Ignore linker warning when searching 64bit libraries in /lib.
+    regsub -all "(^|\n)\[^\n\]*: skipping incompatible \[^\n\]* when searching for \[^\n\]*" $text "" text
+
+    # It might be tempting to get carried away and delete blank lines, etc.
+    # Just delete *exactly* what we're ask to, and that's it.
+    return $text
+}
+
+global local_exec
+
+# We need this function to be redefined, since there is an output truncation
+# causing some failing tests in both binutils and gcc.
+#
+# These failures are because the output truncation causes text comparisons to
+# fail.
+# The truncation happens deep inside dejagnu itself, if it has read more than
+# 512000 bytes from an output it just stops trying to read any more and
+# returns.  This return is not necessarily marked by any special return value
+# (dejagnu attempts to kill the process and if that happens there is
+# the caller is notified, but the process may finish between dejagnu deciding
+# to not continue reading output and attempting to kill the process).
+#
+# We can reduce the output of the problematic tests in GCC and binutils, and
+# try to make this limitation of dejagnu more visible, but right now we want to
+# get rid of the flaky tests and this is one way to quickly do that.
+#
+#
+# We guess the limitation comes about so that things such as unterminated
+# strings can't cause a huge output that breaks the system -- this problem is
+# something we are happy risking for our own uses but not for dejagnu itself.
+# What dejagnu could do to make this less of a problem is to print a warning
+# that the output may have been truncated when we stop reading -- that would at
+# least make understanding the problem a simple grep through the dejagnu
+# sources.
+# It may also be handy to explicitly return information mentioning that the
+# output may be truncated -- though this would also require work everywhere
+# through our testsuites to use.
+#
+#
+# The below function does exactly the same as the global local_exec function,
+# except that it does not stop reading after 512000 bytes.
+
+
+# Run the specified COMMANDLINE on the local machine, redirecting input
+# to file INP (if non-empty), redirecting output to file OUTP (if non-empty),
+# and waiting TIMEOUT seconds for the command to complete before killing
+# it. A two-member list is returned; the first member is the exit status
+# of the command, the second is any output produced from the command
+# (if output is redirected, this may or may not be empty). If output is
+# redirected, both stdout and stderr will appear in the specified file.
+#
+# Caveats: A pipeline is used if input or output is redirected. There
+# will be problems with killing the program if a pipeline is used. Either
+# the "tee" command or the "cat" command is used in the pipeline if input
+# or output is redirected. If the program needs to be killed, /bin/sh and
+# the kill command will be invoked.
+#
+proc local_exec { commandline inp outp timeout } {
+    # Tcl's exec is inadequate. It does two very inappropriate things:
+    # Firstly, it has no business returning an error if the program being
+    # executed happens to write to stderr. Secondly, it appends its own
+    # error messages to the output of the command if the process exits with
+    # non-zero status.
+    #
+    # So, ok, we do this funny stuff with using spawn sometimes and
+    # open others because of spawn's inability to invoke commands with
+    # redirected I/O. We also hope that nobody passes in a command that's
+    # a pipeline, because spawn can't handle it.
+    #
+    # We want to use spawn in most cases, because tcl's pipe mechanism
+    # doesn't assign process groups correctly and we can't reliably kill
+    # programs that bear children. We can't use tcl's exec because it has
+    # no way to timeout programs that hang.
+    #
+    # The expect command will close the connection when it sees
+    # EOF. Closing the connection may send SIGHUP to the child and
+    # cause it to exit before it can exit normally.  The child should
+    # ignore SIGHUP.
+    global errorInfo
+    if { "$inp" == "" && "$outp" == "" } {
+	set id -1
+	set result [catch "eval spawn -ignore SIGHUP \{${commandline}\}" pid]
+	if { $result == 0 } {
+	    set result2 0
+	} else {
+	    set pid 0
+	    set result2 5
+	}
+    } else {
+	# All in the name of non-infinite hangs.
+	if { $inp != "" } {
+	    set inp "< $inp"
+	    set mode "r"
+	} else {
+	    set mode "w"
+	}
+
+	set use_tee 0
+	# We add |& cat so that Tcl exec doesn't misbehave if the
+	# program writes to stderr.
+	if { $outp == "" } {
+	    set outp "|& cat"
+	} else {
+	    set outpf "$outp"
+	    set outp "> $outp"
+	    if { $inp != "" } {
+		set use_tee 1
+	    }
+	}
+	# Why do we use tee? Because open can't redirect both input and output.
+	if { $use_tee } {
+	    set result [catch {open "| ${commandline} $inp |& tee $outpf" RDONLY} id]
+	} else {
+	    set result [catch {open "| ${commandline} $inp $outp" $mode} id]
+	}
+
+	if { $result != 0 } {
+	    return [list -1 "open of $commandline $inp $outp failed: $errorInfo"]
+	}
+	set pid [pid $id]
+	set result [catch "spawn -ignore SIGHUP -leaveopen $id" result2]
+    }
+    # Prepend "-" to each pid, to generate the "process group IDs" needed by
+    # kill.
+    set pgid "-[join $pid { -}]"
+    verbose "pid is $pid $pgid"
+    if { $result != 0 || $result2 != 0 } {
+	# This shouldn't happen.
+	if {[info exists errorInfo]} {
+	    set foo $errorInfo
+	} else {
+	    set foo ""
+	}
+	verbose "spawn -open $id failed, $result $result2, $foo"
+	catch "close $id"
+	return [list -1 "spawn failed"]
+    }
+
+    set got_eof 0
+    set output ""
+
+    # Wait for either $timeout seconds to elapse, or for the program to
+    # exit.
+    expect {
+	-i $spawn_id -timeout $timeout -re ".+" {
+	    append output $expect_out(buffer)
+	    exp_continue -continue_timer
+	}
+	timeout {
+	    warning "program timed out."
+	}
+	eof {
+	    set got_eof 1
+	}
+    }
+
+    # If we didn't get an EOF, we have to kill the program.
+    # However, Tcl has no kill primitive, so we have to execute an external
+    # command in order to kill the execution.
+    if { ! $got_eof } {
+	verbose "killing $pid $pgid"
+	# This is very, very nasty. SH, instead of EXPECT, is used to
+	# run this in the background since, on older CYGWINs, a
+	# strange file I/O error occures.
+	exec sh -c "exec > /dev/null 2>&1 && (kill -2 $pgid || kill -2 $pid) && sleep 5 && (kill -15 $pgid || kill $pid) && sleep 5 && (kill -9 $pgid || kill -9 $pid) &"
+    }
+    # This will hang if the kill doesn't work. Nothin' to do, and it's not ok.
+    catch "close -i $spawn_id"
+    set r2 [catch "wait -i $spawn_id" wres]
+    if { $id > 0 } {
+	set r2 [catch "close $id" res]
+    } else {
+	verbose "waitres is $wres" 2
+	if { $r2 == 0 } {
+	    set r2 [lindex $wres 3]
+	    if { [llength $wres] > 4 } {
+		if { [lindex $wres 4] == "CHILDKILLED" } {
+		    set r2 1
+		}
+	    }
+	    if { $r2 != 0 } {
+		set res "$wres"
+	    } else {
+		set res ""
+	    }
+	} else {
+	    set res "wait failed"
+	}
+    }
+    if { $r2 != 0 || $res != "" || ! $got_eof } {
+	verbose "close result is $res"
+	set status 1
+    } else {
+	set status 0
+    }
+    verbose "output is $output status $status"
+    if { $outp == "" || $outp == "|& cat" } {
+	return [list $status $output]
+    } else {
+	return [list $status ""]
+    }
+}
+
+# See local_exec above for the reasoning -- here we remove the output limit
+# like is done there.
+
+# The standard wait procedure, used for commands spawned on the local
+# machine.
+#
+proc standard_wait { dest timeout } {
+    set output ""
+    set status -1
+
+    if {[info exists exp_close_result]} {
+	unset exp_close_result
+    }
+    remote_expect $dest $timeout {
+	-re ".+" {
+	    append output $expect_out(buffer)
+	    exp_continue -continue_timer
+	}
+	timeout {
+	    warning "program timed out."
+	}
+	eof {
+	    if {[board_info $dest exists fileid_origid]} {
+		global board_info
+
+		set id [board_info $dest fileid]
+		set oid [board_info $dest fileid_origid]
+		verbose "$id $oid"
+		unset board_info($dest,fileid)
+		unset board_info($dest,fileid_origid)
+		catch "close -i $id"
+		# Here we have to do a wait, even though it won't work!
+		catch "wait -i $id"
+		set r2 [catch "close $oid" res]
+		if { $r2 != 0 } {
+		    verbose "close result is $res"
+		    set status 1
+		} else {
+		    set status 0
+		}
+	    } else {
+		set s [wait -i [board_info $dest fileid]]
+		if { [lindex $s 0] != 0 && [lindex $s 2] == 0 } {
+		    set status [lindex $s 3]
+		    if { [llength $s] > 4 } {
+			if { [lindex $s 4] == "CHILDKILLED" } {
+			    set status 1
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    remote_close $dest
+    return [list $status $output]
+}

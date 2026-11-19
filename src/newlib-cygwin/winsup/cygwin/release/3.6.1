@@ -1,0 +1,51 @@
+Fixes:
+------
+
+- Console mode is really restored to the previous mode.
+  Addresses: https://github.com/msys2/msys2-runtime/issues/268
+
+- Clear direction flag in sigdeleyed before calling signal handler.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257704.html
+
+- getlocalename_l: Fix a crash and handle LC_ALL according to final
+  POSIX-1.2024 docs.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257715.html
+
+- Copy context to alternate signal stack area in call_signal_handler()
+  in the SA_ONSTACK case, because locally-copied context on the normal
+  stack area is not accessible from the signal handler.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257714.html
+
+- Fix reference counting when dlopen/dlclose is called on the Cygwin DLL
+  or on non-Cygwin DLLs.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257783.html
+
+- Fix reference counting when dlopen/dlclose a DLL with RTLD_NODELETE.
+
+- Disallow accounts from the BUILTIN, NT AUTHORITY, NT SERVICE domains
+  as USER entry in a POSIX ACL.  Only allow USER_OBJ, GROUP_OBJ and GROUP.
+
+- Accommodate a change in Windows exception handling affecting software
+  generated exceptions.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257808.html
+
+- Return EMFILE when opening /dev/ptmx too many times.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257786.html
+
+- Move pthread::atforkchild() at the end of fork::child(). This fixes
+  subprocess failure in cmake (>= 3.29.x).
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257800.html
+  Addresses: https://github.com/msys2/msys2-runtime/issues/272
+
+- Don't increment DLL reference count in dladdr.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-April/257862.html
+
+- Fix tcsetattr() for console which has been broken sinse cygwin 3.5.5.
+
+- Fix up cached DOS attributes when trying to create the same file in
+  two (or more) threads/processes concurrently.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-April/257871.html
+
+- Fix deadlock when calling pthread_key_create in the destructor of
+  a pthread_key.
+  Addresses: https://cygwin.com/pipermail/cygwin/2025-March/257705.html

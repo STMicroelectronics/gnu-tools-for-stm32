@@ -1,0 +1,80 @@
+# Load the generic configuration for this board. This will define a basic
+# set of routines used to communicate with the board.
+load_generic_config "qemu"
+
+# No multilib flags needed by default.
+process_multilib_options ""
+
+# basic-sim.exp is a basic description for the standard Cygnus simulator.
+#load_base_board_description "basic-sim"
+
+# The name of the directory in the build tree where the simulator lives.
+#setup_sim aarch64
+
+# We only support newlib on this target. We assume that all multilib
+# options have been specified before we get here.
+set_board_info compiler "[find_gcc]"
+set_board_info cflags	"-specs=rdimon.specs [libgloss_include_flags] [newlib_include_flags]"
+set_board_info ldflags	"[libgloss_link_flags] [newlib_link_flags]"
+case "$target_triplet" in {
+    { "aarch64_be-*-elf" } {
+	set_board_info sim      "qemu-aarch64_be"
+    }
+    default {
+	set_board_info sim      "qemu-aarch64"
+    }
+}
+set_board_info is_simulator 1
+set_board_info sim,options "-cpu max"
+
+# Used by a few gcc.c-torture testcases to delimit how large the stack can
+# be.
+#set_board_info gcc,stack_size  16384
+
+# More time is needed to compile PlumHall tests
+#set_board_info gcc,timeout 800
+
+# Runtime doesn't pass signals
+set_board_info gdb,nosignals 1
+
+# QEMU doesn't allow hardware watchpoints.
+set_board_info gdb,no_hardware_watchpoints 1
+
+# Don't expect interrupts to work in gdb testsuite
+proc set_host_info { entry value } {
+    global target_info board_info
+    verbose "set_host_info $entry $value" 3
+
+    set machine host
+    if {[info exists target_info($machine,name)]} {
+        set machine $target_info($machine,name)
+    }
+    set board_info($machine,$entry) $value
+}
+
+set_host_info gdb,nointerrupts 1
+
+# Cannot pass command line arguments
+set_board_info noargs 1
+
+# Cannot return results
+#set_board_info gdb,noresults 1
+
+# Only set the following when testing GDB...
+
+# Treat as a remote board
+set_board_info use_gdb_stub 1
+set_board_info gdb_protocol "remote"
+
+# Re-issue the "load" command on "run"; this enables the gdb.mi tests to
+# run properly.
+set_board_info gdb,do_reload_on_run 1
+
+set port -1
+set_board_info gdb,socketport $port
+
+# We have some basic fileio via libgloss, but fileio.exp in gdb requires
+# rather elaborate support. Notably system().
+set_board_info gdb,nofileio   1
+
+set_board_info isremote 0

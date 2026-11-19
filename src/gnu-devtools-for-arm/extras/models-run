@@ -1,0 +1,1294 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+#This check will stop the script if bash < 4 is found
+if [ "$BASH_VERSINFO" -lt 4 ]; then
+  printf "error: this script requires bash >= 4.X. Your version is %s\n" \
+    "$BASH_VERSION" >&2
+  exit 5
+fi
+script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+tmpdir=$(mktemp -d)
+
+cleanup()
+{
+  rm -rf "$tmpdir"
+}
+
+trap cleanup 0
+
+default_install_dir="$HOME/.aem-installs"
+
+verbose()
+{
+  if [ "$flag_verbose" -gt 0 ]; then
+    printf "models-run: %s\n" "$*" >&2
+  fi
+}
+
+debug()
+{
+  if [ "$flag_verbose" -gt 1 ]; then
+    printf "models-run: %s\n" "$*" >&2
+  fi
+}
+
+shutdown_model()
+{
+  debug "caught signal $*"
+  debug "my pid,ppid,pgrp: $(ps -opid=,ppid=,pgrp= $$)"
+  if [ -n "$model_pid" ];  then
+    debug "model pid,ppid,pgrp: $(ps -opid=,ppid=,pgrp= "$model_pid")"
+    for s in 2 15 9; do
+      debug "sending model signal $s"
+      if ! kill -$s "$model_pid" 2>/dev/null; then
+      # model has exited already
+      break
+      fi
+      sleep 1
+      if [ -z "$(ps -opid= "$model_pid")" ]; then
+      # model took the hint
+      break
+      fi
+      debug "$model_pid ignored signal $s... escalating."
+    done
+  fi
+}
+
+trap_with_arg()
+{
+  local f="$1"
+  shift
+  local s
+  for s in "$@"
+  do
+    # We want both f and s to expand now rather than when the trap
+    # fires, therefore disable the shellcheck warning
+    # shellcheck disable=SC2064
+    trap "$f $s" "$s"
+  done
+}
+
+get_loc_model_name ()
+{
+  local model_package="$1"
+  local model_arch="$2"
+
+  local mn
+  local mp
+  local mx
+
+  ## This is different to property ipmn !
+  case $model_package--$model_arch in
+    base--armv8-a) mn="AEMv8A" ;;
+    base--morello) mn="Morello" ;;
+    foundation--*)
+    #  case $wversion in
+    #  1\.3)
+        mn="Platform"
+     #   ;;
+      #*)
+       # mn="v8"
+       # ;;
+    #  esac
+    ;;
+    ve--*) mn="AEMv8A" ;;
+    val--*) mn="AEMv8A" ;;
+    mps2--armv6-m) mn="Cortex-M0_CC312" ;;
+    mps2--armv6s-m) mn="Cortex-M0plus_CC312" ;;
+    mps2--armv7*-m) mn="Cortex-M7_CC312" ;;
+    mps2--armv8-m.base) mn="AEMv8M";;
+    mps2--armv8-m.main) mn="AEMv8M";;
+    mps2--armv8.1-m.main) mn="AEMv8M";;
+    *)
+      printf "ooops: %s\n" "$model_package--$model_arch" >&2
+      exit 3
+      ;;
+  esac
+
+  mp=$(set -e; get_platform_name_from_model_package "$model_package")
+  mx=FVP
+
+  echo "${mx}${mp:+_$mp}_${mn}"
+}
+
+get_platform_name_from_model_package ()
+{
+  local model_package="$1"
+
+  case $model_package in
+  base) echo "Base"  ;;
+  foundation) echo "" ;;
+  ve) echo "VE" ;;
+  val) echo "VAL" ;;
+  mps2) echo "MPS2" ;;
+  rt) echo "" ;;
+  *) oops ;;
+  esac
+}
+
+detect_elf ()
+{
+  local app="$1"
+
+  local elf
+  elf="$(od -An -v -j0 -N4 -t x1 "$app")"
+
+  if [ "$elf" = " 7f 45 4c 46" ]
+  then
+    echo "1"
+  else
+    echo "0"
+  fi
+}
+
+detect_big_endian ()
+{
+  local app="$1"
+
+  local bigendian
+  bigendian="$(od -An -v -j5 -N1 -t x1 "$app")"
+
+  case $bigendian in
+  " 01")
+    echo "0"
+    ;;
+  " 02")
+    echo "1"
+    ;;
+  *)
+    echo "error: bigendian='$bigendian'" >& 2
+    exit 1
+    ;;
+  esac
+}
+
+
+detect_be8 ()
+{
+  local app="$1"
+
+  local n
+  n=$(od -An -v -j0x25 -N1 -t d "$app")
+  let "n=$n&0x80"
+  if [ $n -eq 128 ]; then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+detect_instruction_set ()
+{
+  local app="$1"
+
+  local sfbit
+  sfbit="$(od -An -v -j4 -N1 -t x1 "$app")"
+
+  case $sfbit in
+  " 02")
+    echo "a64"
+    ;;
+  " 01")
+    local lowbyte
+    local bigendian
+    local val
+    bigendian="$(od -An -v -j5 -N1 -t x1 "$app")"
+    # Check e_machine
+    if [ "$bigendian" = " 02" ]
+    then
+      lowbyte=19
+    else
+      lowbyte=18
+    fi
+    val="$(od -An -w1 -v -j$lowbyte -N1 -t x1 "$app")"
+    case $val in
+    " b7")
+      echo "a64"
+      exit 0
+      ;;
+    " 28")
+      ;;
+    *)
+      echo "oops unsupported e_machine='$val'" >& 2
+      exit 1
+      ;;
+    esac
+    # Check lsb of e_entry
+    if [ "$bigendian" = " 02" ]
+    then
+      lowbyte=27
+    else
+      lowbyte=24
+    fi
+    val="$(od -An -w1 -v -j$lowbyte -N1 -t x1 "$app")"
+    case $val in
+    *0|*2|*4|*6|*8|*a|*c|*e)
+      echo "a32"
+      ;;
+    *1|*3|*5|*7|*9|*b|*d|*f)
+      echo "t32"
+      ;;
+    *)
+      echo "error: oops addr_low_byte='$val'" >& 2
+      exit 1
+      ;;
+    esac
+    ;;
+  *)
+    echo "error: oops sfbit='$sfbit'" >& 2
+    exit 1
+    ;;
+  esac
+}
+
+
+## Human readable list of locally installed models.
+li_list ()
+{
+  local arch
+  local last_used
+  local model
+  local p
+  local path
+  local version
+
+  for path in "$flag_model_path"/*/models/*/*/timestamp
+  do
+    if [ -e "$path" ]; then
+      p=$(dirname "$path")
+      arch=$(basename "$p")
+      p=$(dirname "$p")
+      model=$(basename "$p")
+      p=$(dirname "$p")
+      p=$(dirname "$p")
+      version=$(basename "$p")
+      last_used=$(cat "$path")
+      printf "%s\t%-12s\t%-12s\t%s\n" "$version" "$model" "$arch" "$last_used"
+    fi
+  done
+}
+
+match ()
+{
+  if [ "$1" == "$2" ]; then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+
+# Search AEMv8A/AEMvA binary filenames in a path;
+# 'AEMv8A' in some filenames had the '8' dropped in new
+# model versions as as v9 was introduced and the models started
+# supporting both v8 and v9
+function check_model_filename_for_AEMv8_format ()
+{
+    local model_path=$1
+    local model_filename=$2
+
+    # If "AEMv8" in filename, replace it with "AEMv"
+    local aem_model_filename=${model_filename/AEMv8/AEMv}
+
+    # Check if model name exists
+    if [ -f $model_path/$model_filename ]; then
+        echo "$model_filename"
+        return 0
+    # Check if the modified model name exists
+    elif [ -f $model_path/$aem_model_filename ]; then
+        echo "$aem_model_filename"
+        return 0
+    else
+        echo "$model_filename"
+        return 1
+    fi
+}
+
+usage ()
+{
+    cat <<EOF
+usage: models-run [OPTIONS] PROGRAM [ARGS]
+
+   Model runner.
+
+   This script executes "PROGRAM [ARGS]" on a variety of models.
+
+   This script only manages the execution of the models.
+
+   Model packages are expected to be found pre-installed by user and specified
+   using the '--model_path' '--model_filename' command line options. If these
+   are not given, the script will try to run 'internal-models-install-manager'
+   for users inside Arm, or for users outside Arm it will attempt to find an
+   appropriate model in the user's home directory.
+
+   Typical usage scenarios:
+
+   # Execute hello.a64 on an already-installed foundation model version,
+   # autodetecting instruction set and endianness:
+   $ models-run hello.a64
+
+   # ...and switch to VE model...
+   $ models-run --model=ve hello.a64
+
+   # ... and switch to validation model...
+   $ models-run --model=val hello.a64
+
+   Options:
+
+   --model_path=/path/to/model/installation
+     The path where the model runner should expect to find the model to be run.
+     This can either
+
+   --model_filename=NameOfModelBinary
+     The filename of the model binary to be run. This will either be in
+     --model_path or in a `models` subfolder.
+
+   --arch=ARCH
+     Use architcture version ARCH.  Possible values when used with:
+     --model=val
+       armv8-a
+       armv8.1-a
+       armv8.2-a
+       armv8.3-a
+       armv8.4-a
+       armv8.5-a
+       armv8.6-a
+     --model=mps2
+       armv6-m
+       armv6s-m
+       armv7-m
+       armv7e-m
+       armv8-m.base
+       armv8-m.main
+       armv8.1-m.main
+
+   --bigendian
+     Create a big endian cpu.
+
+   --debugger
+     Use model debugger.  Only works with MODEL=ve.
+
+   --gdb-debugger
+     Use the gdb debugger. Only with with MODEL=ve.
+
+   -g PORT, --gdb-port=PORT
+     Set the port number that the gdb server will listen on.
+
+   --enable-instruction-set=[a64|a32|t32]
+
+   -h, --help
+     Print brief usage information and exit.
+
+   --iface=IFACE
+     Name of the host bridge network interface AEM should use.
+
+   --littleendian
+     Create a little endian cpu.
+
+
+  --list-installed
+    List installed models and exit.
+
+   --mac=xx:xx:xx:xx:xx:xx
+
+   --model=MODEL
+     Select a model, valid models are:
+       foundation
+       ve
+       validation or val
+       mps2
+       Default: foundation.
+
+   --[no-]realtime
+     Enable of disable realtime mode.  Default disabled.
+
+   --[no-]semi
+     Enable or disable semi hosting.  Default enabled.
+
+   --tarmac=FILE
+     Enable tarmac tracing output to FILE.
+
+   -v, --verbose
+     Increase the verbosity level.
+
+   -x
+     Enable shell tracing in this script.
+
+EOF
+}
+
+check_plugin ()
+{
+  if [ -z "${mb_plugins_folder}" ]; then
+    printf "error: plugins folder not found for %s plugin\n" "$1" >&2
+    exit 3
+  fi
+  if [ ! -f "$mb_plugins_folder/$1.so" ]; then
+    printf "error: %s.so not found in %s\n" "$1" "$mb_plugins_folder" >&2
+    exit 3
+  fi
+  echo "$mb_plugins_folder/$1.so"
+}
+
+flag_arch=""
+flag_cache=0
+flag_dczid=8
+flag_debugger=0
+flag_gdb_debugger=0
+flag_gdb_port=31627
+flag_li_list=0
+flag_model=foundation
+flag_semi=1
+flag_realtime=0
+flag_verbose=0
+flag_model_path=""
+flag_model_filename=""
+
+args=$(getopt -og:hvx -l arch:,bigendian,debugger,gdb-debugger,gdb-port:,enable-instruction-set:,help,iface:,littleendian,list-installed,mac:,model_filename:,model_path:,model:,param-cache-enable,param-cache-disable,param-dczid:,realtime,no-realtime,semi,no-semi,tarmac:,verbose -n "$(basename "$0")" -- "$@")
+eval set -- "$args"
+
+while [ $# -gt 0 ]; do
+  if [ -n "${opt_prev:-}" ]; then
+    eval "$opt_prev=\$1"
+    opt_prev=
+    shift 1
+    continue
+  elif [ -n "${opt_append:-}" ]; then
+    eval "$opt_append=\"\${$opt_append:-} \$1\""
+    opt_append=
+    shift 1
+    continue
+  fi
+  case $1 in
+  --arch)
+    opt_prev=flag_arch
+    ;;
+
+  --bigendian)
+    flag_bigendian=1
+    ;;
+
+  --debugger)
+    flag_debugger=1
+    ;;
+
+  --gdb-debugger)
+    flag_gdb_debugger=1
+    ;;
+
+  -g | --gdb-port)
+    opt_prev=flag_gdb_port
+    ;;
+
+  --enable-instruction-set)
+    opt_prev=flag_iset
+    ;;
+
+  -h | --help)
+    usage
+    exit 0
+    ;;
+
+  --iface)
+    opt_prev=flag_netiface
+    ;;
+
+  --list-installed)
+    flag_li_list=1
+    ;;
+
+  --littleendian)
+    flag_bigendian=0
+    ;;
+
+  --mac)
+    opt_prev=flag_mac
+    ;;
+
+  --model_filename)
+    opt_prev=flag_model_filename
+    ;;
+
+  --model_path)
+    opt_prev=flag_model_path
+    ;;
+
+  --model)
+    opt_prev=flag_model
+    ;;
+
+  --param-cache-enable)
+    flag_cache=1
+    ;;
+
+  --param-cache-disable)
+    flag_cache=0
+    ;;
+
+  --param-dczid)
+    opt_prev=flag_dczid
+    ;;
+
+  --realtime)
+    flag_realtime=1
+    ;;
+
+  --no-realtime)
+    flag_realtime=0
+    ;;
+
+  --semi)
+    flag_semi=1
+    ;;
+
+  --no-semi)
+    flag_semi=0
+    ;;
+
+  --tarmac)
+    opt_prev=flag_tarmac
+    ;;
+
+  -v | --verbose)
+    flag_verbose=$((flag_verbose + 1))
+    ;;
+
+  -x)
+    set -x
+    ;;
+
+  --)
+    shift
+    break 2
+    ;;
+
+  esac
+  shift 1
+done
+
+# Historically models-run is case insensitive w.r.t model name.
+flag_model="$(echo "$flag_model" | tr "[:upper:]" "[:lower:]")"
+
+# Historically models-run permits validation and val as synonyms.
+case "$flag_model" in
+validation)
+    flag_model=val
+    ;;
+esac
+
+# Validate the model name.  All recognized model patterns should be
+# here irrespective of architecture.
+case "$flag_model" in
+base)
+  ;;
+foundation)
+  ;;
+mps2)
+  ;;
+val)
+  ;;
+ve)
+  ;;
+*)
+  printf "error: unknown model %s\n" "$flag_model" >&2
+  exit 2
+  ;;
+esac
+
+# For consistent behaviour we default the architecture choice to
+# armv8-a if no architecture was specified on the command line.
+flag_arch="${flag_arch:-armv8-a}"
+
+flag_sve=0
+while ((1)); do
+  case "$flag_arch" in
+  *+sve)
+    flag_sve=1
+    flag_arch="${flag_arch%+sve}"
+    ;;
+
+  *+*)
+    echo >&2 "error: unknown architecture extension +${flag_arch#*+}"
+    exit 1
+    ;;
+
+  *)
+    break
+    ;;
+  esac
+done
+
+
+# Validate the arch name.  All recognized architecture patterns
+# should be here irrespective of the model.
+case "$flag_arch" in
+armv8-a)
+  ;;
+armv8.1-a)
+  ;;
+armv8.2-a)
+  ;;
+armv8.3-a)
+  ;;
+armv8.4-a)
+  ;;
+armv8.5-a)
+  ;;
+armv8.6-a)
+  ;;
+morello)
+  ;;
+armv6-m)
+ ;;
+armv6s-m)
+ ;;
+armv7-m)
+ ;;
+armv7e-m)
+ ;;
+armv8-m.base)
+ ;;
+armv8-m.main)
+ ;;
+armv8.1-m.main)
+ ;;
+*)
+  printf "error: unknown architecture %s\n" "$flag_arch" >&2
+  exit 2
+  ;;
+esac
+
+# Depending on the model and the user's command line options, we may need to
+# add extra arguments to the model's command line.
+extraargs=""
+
+# Validate the combination of model and arch.  Any new valid
+# combinations of model and architecture must be enumerated here.
+case "$flag_model--$flag_arch" in
+base--armv8-a) ;;
+base--morello) ;;
+foundation--armv8-a) ;;
+val--armv8-a) ;;
+val--armv8.1-a) ;;
+val--armv8.2-a) ;;
+val--armv8.3-a) ;;
+val--armv8.4-a) ;;
+val--armv8.5-a) ;;
+val--armv8.6-a) ;;
+ve--armv8-a) ;;
+mps2--armv6-m) ;;
+mps2--armv6s-m) ;;
+mps2--armv7-m) ;;
+mps2--armv7e-m) ;;
+mps2--armv8-m.base) ;;
+mps2--armv8-m.main) ;;
+mps2--armv8.1-m.main) ;;
+*)
+  printf "error: unsupported model %s and architecture %s combination\n" "$flag_model" "$flag_arch" >&2
+  exit 2
+  ;;
+esac
+
+
+if [ $flag_li_list -eq 1 ]; then
+  if [ -z "${flag_model_path}" ]
+  then
+    flag_model_path=${default_install_dir}
+  fi
+  li_list
+  exit 0
+fi
+
+# Now that we have verified that the input model and arch combinations are
+# sane, try to find the model installation locally
+
+# If the model installation folder wasn't specified on the command line...
+if [ -z "${flag_model_path}" ]
+then
+  flag_model_path=${default_install_dir}
+  # If we can find a internal-models-install-manager script, we must be inside
+  # Arm, so call that. Else raise an error.
+  if [ -f "$script_dir/internal-models-install-manager" ]; then
+    source "$script_dir/internal-models-install-manager"
+    internal_models_var=$(set -e; get_internal_aem_installs_model)
+    IFS=: read -r flag_model_path flag_model_filename <<< $internal_models_var
+  else
+    printf "error: model installation path not specified and no internal install manager found at %s/internal-models-install-manager\n" "${script_dir}" >&2
+    exit 2
+  fi
+fi
+
+
+# If the model filename wasn't specified on the command line, _and_ it wasn't set
+# by the internal-models-install-manager, try to guess it based on the --model
+# and --arch options.
+if [ -z "${flag_model_filename}" ]
+then
+  flag_model_filename=$(set -e; get_loc_model_name "$flag_model" "$flag_arch")
+fi
+
+# Sanitise model path input: expands ~/ and removes a training / if it was given by the user
+flag_model_path="${flag_model_path/#\~/$HOME}"
+flag_model_path=$(realpath ${flag_model_path})
+
+if [ ! -d "${flag_model_path}" ] 
+then
+  printf "error: folder not found %s\n" "${flag_model_path}" >&2
+  exit 2
+fi
+
+# The user will have provided `flag_model_path`. We then try to find:
+# * The model binary: mb
+# * The model binary's folder: mb_folder
+# * The bin folder: mb_bin_folder
+# * The plugins folder: mb_plugins_folder
+
+# The bin folder and the plugins folder are allowed to not be found, because
+# not all model options use them. This will raise an error later if comand line
+# options do cause them to be required, though.
+
+# First check if the model binary is directly in flag_model_path. If it is, then
+# look for the other folders in ../flag_model_path and ../../flag_model_path
+# The bin folder contains the raw files, but the plugins folder contains a
+# "hostvariant" subfolder which is the name of the GNU Toolchain that was used
+# to build the model libraries and plugins.
+#
+# Lookup the model dir and check for model filename format containing AEMv8A or AEMvA
+mb_folder="$flag_model_path"
+set +e
+formatted_model_filename=$(check_model_filename_for_AEMv8_format $mb_folder $flag_model_filename)
+if [ $? -eq 0 ]
+then
+  set -e
+  mb="$mb_folder/$formatted_model_filename"
+
+  mb_folder_up1=$(realpath "$mb_folder/../")
+  mb_folder_up2=$(realpath "$mb_folder_up1/../")
+  if [ -d "$(find ${mb_folder_up1} -type d -wholename "$mb_folder_up1/plugins/Linux64_GCC*")" ]
+  then
+    mb_plugins_folder="$(find ${mb_folder_up1} -type d -wholename "$mb_folder_up1/plugins/Linux64_GCC*")"
+  elif [ -d "$(find ${mb_folder_up2} -type d -wholename "$mb_folder_up2/plugins/Linux64_GCC*")" ]
+  then
+    mb_plugins_folder="$(find ${mb_folder_up2} -type d -wholename "$mb_folder_up2/plugins/Linux64_GCC*")"
+  fi
+
+  if [ -d "${mb_folder_up1}/bin" ]
+  then
+    mb_bin_folder="${mb_folder_up1}/bin"
+  elif [ -d "${mb_folder_up2}/bin" ]
+  then
+    mb_bin_folder="${mb_folder_up2}/bin"
+  fi
+
+# Secondly, check if the flag_model_path is the base folder and the others are
+# at flag_model_path/<plugins/models/bin>
+elif [ -d "${flag_model_path}/models" ]
+then
+  # Get the path to the model in Linux64_GCC* subdir and check for filename format containing AEMv8A or AEMvA
+  mb_folder=$(find ${flag_model_path}/models -type d -wholename "${flag_model_path}/models/Linux64_GCC*")
+  set +e
+  formatted_model_filename=$(check_model_filename_for_AEMv8_format $mb_folder $flag_model_filename)
+  if [ $? -ne 0 ]   # Nothing in dir Linux64_GCC*, check somewhere else
+  then
+    set -e
+    # Lookup the `models` subdir and check for filename format containing AEMv8A or AEMvA
+    mb_folder="${flag_model_path}/models"
+    set +e
+    formatted_model_filename=$(check_model_filename_for_AEMv8_format $mb_folder $flag_model_filename)
+    if [ $? -ne 0 ] # Nothing in dir /models
+    then
+      set -e
+      printf "error: model %s not found at %s or %s\n" "${flag_model_filename}" "${flag_model_path}/models/" "${flag_model_path}/models/<GNU Toolchain release>/" >&2
+      exit 2
+    fi
+  fi
+  # At this point a path and a filename for the model has been found
+  mb="${mb_folder}/${formatted_model_filename}"
+
+  if [ -d "$(find ${flag_model_path} -type d -wholename "${flag_model_path}/plugins/Linux64_GCC*")/" ]
+  then
+    mb_plugins_folder="$(find ${flag_model_path} -type d -wholename "${flag_model_path}/plugins/Linux64_GCC*")"
+  fi
+
+  if [ -d "${flag_model_path}/bin" ]
+  then
+    mb_bin_folder="${flag_model_path}/bin"
+  fi
+else
+  printf "error: unknown model install folder structure at %s\n" "$flag_model_path" >&2
+  exit 2
+fi
+
+if [ $# -eq 0 ]; then
+  printf "error: missing image\n" >&2
+  exit 1
+fi
+
+image="$1"
+if [ "$(set -e; detect_elf "$image")" -eq 0 ]
+then
+  if [ -z "${flag_bigendian:-}" ]
+  then
+    echo "error: specified image is not in ELF format please explicitly set endianness: $image" >& 2
+    exit 1
+  fi
+  if [ -z "${flag_iset:-}" ]
+  then
+    echo "error: specified image is not in ELF format please explicitly set the instruction set: $image" >& 2
+    exit 1
+  fi
+fi
+
+if [ -z "${flag_bigendian:-}" ]
+then
+  flag_bigendian=$(set -e; detect_big_endian "$image")
+fi
+
+if [ -z "${flag_iset:-}" ]
+then
+  flag_iset=$(set -e; detect_instruction_set "$image")
+fi
+
+flag_be8=0
+case $flag_iset in
+a32 | t32)
+  if [ "$flag_bigendian" -eq 1 ]; then
+    flag_be8=$(set -e; detect_be8 "$image")
+  fi
+  ;;
+esac
+
+case $flag_iset in
+a64 | a32 | t32)
+  ;;
+*)
+  printf "error: unrecognized instruction set '%s'\n" "$flag_iset" >&2
+  exit 1
+  ;;
+esac
+
+# Ensure that abnormal exit from the model is reported correctly.
+export FASTSIM_EXIT_ON_SEMIHOST_REPORT_EXCEPTION=1
+export FASTSIM_EXIT_ON_SEMIHOST_RUNTIME_ERROR=1
+
+case $flag_model in
+foundation)
+  extraargs="--quiet"
+
+  if [ "$flag_bigendian" -eq 1 ]; then
+    extraargs="$extraargs --bigendian"
+
+    case $flag_iset in
+    a32 | t32)
+      if [ "$flag_be8" -eq 0 ]; then
+        printf "error: cannot execute be32 binary.\n" >&2
+        exit 4
+      fi
+      ;;
+    esac
+  fi
+
+  if [ $flag_semi -eq 0 ]; then
+    extraargs="$extraargs --no-semihost"
+  fi
+
+  if [ $flag_realtime -eq 1 ]; then
+    extraargs="$extraargs --use-real-time"
+  fi
+
+  if [ -n "${flag_netiface:-}" ]; then
+    extraargs="$extraargs --network=bridged --network-bridge=$flag_netiface"
+  fi
+
+  if [ -n "${flag_mac:-}" ]
+  then
+    extraargs="$extraargs --network-mac-address=$flag_mac"
+  fi
+
+  "$mb" $extraargs --semihost-cmd="$*" --image="$1"
+  ;;
+
+base)
+  if [ -z "${mb_bin_folder}" ]
+  then
+    printf "error: bin folder not found for base model invokation" >&2
+    exit 3
+  fi
+
+  if [ $flag_realtime -eq 1 ]; then
+    export FM_EXPOSE_REALTIME_PARAM=1
+    extraargs="$extraargs -C cluster.generic_timers_realtime_frequency=100000000"
+  fi
+
+  if [ "$flag_bigendian" -eq 1 ]; then
+    case $flag_iset in
+    a32 | t32)
+      if [ "$flag_be8" -eq 0 ]; then
+        printf "error: cannot execute be32 binary.\n" >&2
+        exit 4
+      fi
+      ;;
+    esac
+  fi
+
+  if [ -n "${flag_netiface:-}" ]; then
+    extraargs="$extraargs -C motherboard.hostbridge.interfaceName=$flag_netiface"
+  fi
+
+  if [ -n "${flag_mac:-}" ]
+  then
+    extraargs="$extraargs -C motherboard.smsc_91c111.mac_address=$flag_mac"
+    extraargs="$extraargs -C motherboard.smsc_91c111.enabled=1"
+    extraargs="$extraargs -C motherboard.smsc_91c111.promiscuous=T"
+  fi
+
+  if [ -n "${flag_tarmac:-}" ]; then
+    extraargs="$extraargs --plugin $(check_plugin TarmacTrace) -C TRACE.TarmacTrace.trace-file=$flag_tarmac "
+    printf "warning: validation model provides no mechanism to redirect tarmac output\n" >&2
+  fi
+
+  if [ $flag_gdb_debugger -eq 1 ]; then
+    extraargs="$extraargs --plugin $(check_plugin GDBRemoteConnection) -S "
+    extraargs="$extraargs -C REMOTE_CONNECTION.GDBRemoteConnection.port=$flag_gdb_port "
+    extraargs="$extraargs -C REMOTE_CONNECTION.GDBRemoteConnection.shutdown_on_disconnect=1 "
+  fi
+
+  if [ $flag_arch != "morello" ]; then
+    config64="$(match "$flag_iset" "a64" )"
+    teinit="$(match "$flag_iset" "t32" )"
+    extraargs="$extraargs -C cluster0.cpu0.CONFIG64=$config64"
+    extraargs="$extraargs -C cluster0.cpu0.TEINIT=$teinit"
+    extraargs="$extraargs -C cluster0.cpu0.DCZID-log2-block-size=$flag_dczid"
+    extraargs="$extraargs -C cluster1.NUM_CORES=0"
+  fi
+
+  PATH="$mb_bin_folder:$PATH" \
+  "$mb" \
+      -q \
+      -C bp.vis.disable_visualisation=1 \
+      -C bp.secure_memory=false \
+      -C bp.terminal_0.quiet=1 \
+      -C bp.terminal_1.quiet=1 \
+      -C bp.terminal_2.quiet=1 \
+      -C bp.terminal_3.quiet=1 \
+      -C semihosting-enable="$flag_semi" \
+      -C cluster0.cpu0.CFGEND="$flag_bigendian" \
+      -C cluster0.NUM_CORES=1 \
+      -C bp.pl041_aaci.enabled=0 \
+      -C cluster0.cpu0.semihosting-cmd_line="$*" \
+      $extraargs \
+      -a cluster0.cpu0="$1"
+  ;;
+
+ve)
+  if [ -z "${mb_bin_folder}" ]; then
+    printf "error: bin folder not found for ve model invokation" >&2
+    exit 3
+  fi
+
+  modelso="$mb.so"
+  if [ ! -f "$modelso" ]; then
+    printf "error: %s not found in model installation\n" "$modelso" >&2
+    exit 3
+  fi
+
+  if [ $flag_realtime -eq 1 ]; then
+    export FM_EXPOSE_REALTIME_PARAM=1
+    extraargs="$extraargs -C cluster.generic_timers_realtime_frequency=100000000"
+  fi
+
+  if [ "$flag_bigendian" -eq 1 ]; then
+    case $flag_iset in
+    a32 | t32)
+      if [ "$flag_be8" -eq 0 ]; then
+        printf "error: cannot execute be32 binary.\n" >&2
+        exit 4
+      fi
+      ;;
+    esac
+  fi
+
+  if [ -n "${flag_netiface:-}" ]; then
+    extraargs="$extraargs -C motherboard.hostbridge.interfaceName=$flag_netiface"
+  fi
+
+  if [ -n "${flag_mac:-}" ]
+  then
+    extraargs="$extraargs -C motherboard.smsc_91c111.mac_address=$flag_mac"
+    extraargs="$extraargs -C motherboard.smsc_91c111.enabled=1"
+    extraargs="$extraargs -C motherboard.smsc_91c111.promiscuous=T"
+  fi
+
+  if [ -n "${flag_tarmac:-}" ]; then
+    extraargs="$extraargs --plugin $(check_plugin TarmacTrace) -C TRACE.TarmacTrace.trace-file=$flag_tarmac "
+    printf "warning: validation model provides no mechanism to redirect tarmac output\n" >&2
+  fi
+
+  model_shell_wrapper=""
+  if [ $flag_debugger -eq 1 ]; then
+    model_shell_wrapper="$mb_bin_folder/modeldebugger"
+    extraargs="$extraargs $modelso"
+  else
+    model_shell_wrapper="$mb_bin_folder/model_shell64"
+    extraargs="$extraargs -q -m $modelso"
+  fi
+
+  if [ $flag_gdb_debugger -eq 1 ]; then
+    extraargs="$extraargs --plugin $(check_plugin GDBRemoteConnection) -S "
+    extraargs="$extraargs -C REMOTE_CONNECTION.GDBRemoteConnection.port=$flag_gdb_port "
+    extraargs="$extraargs -C REMOTE_CONNECTION.GDBRemoteConnection.shutdown_on_disconnect=1 "
+  fi
+
+  PATH="$mb_bin_folder:$PATH" \
+  "$model_shell_wrapper" \
+      -C motherboard.vis.disable_visualisation=1 \
+      -C motherboard.terminal_0.quiet=1 \
+      -C motherboard.terminal_1.quiet=1 \
+      -C motherboard.terminal_2.quiet=1 \
+      -C motherboard.terminal_3.quiet=1 \
+      -C cluster.cpu0.CFGEND="$flag_bigendian" \
+      -C cluster.cpu0.semihosting-enable="$flag_semi" \
+      -C cluster.cpu0.CONFIG64="$(match "$flag_iset" "a64" )" \
+      -C cluster.cpu0.TEINIT="$(match "$flag_iset" "t32" )" \
+      -C cluster.NUM_CORES=1 \
+      -C cluster.dcache-state_modelled=$flag_cache \
+      -C cluster.icache-state_modelled=$flag_cache \
+      -C cluster.cpu0.DCZID-log2-block-size=$flag_dczid \
+      -C cluster.cpu0.semihosting-cmd_line="$*" \
+      $extraargs \
+       "$1"
+  ;;
+
+val)
+  if [ $flag_realtime -eq 1 ]; then
+    export FM_EXPOSE_REALTIME_PARAM=1
+    extraargs="$extraargs -C cpu.generic_timers_realtime_frequency=100000000"
+  fi
+
+  if [ "$flag_arch" == "armv8-a" ] ; then
+    extraargs="$extraargs -C cpu.has_arm_v8-1=0"
+  elif [ "$flag_arch" == "armv8.1-a" ] ; then
+    extraargs="$extraargs -C cpu.has_arm_v8-1=1"
+  elif [ "$flag_arch" == "armv8.2-a" ] ; then
+    extraargs="$extraargs -C cpu.has_arm_v8-2=1"
+  elif [ "$flag_arch" == "armv8.3-a" ] ; then
+    extraargs="$extraargs -C cpu.has_arm_v8-3=1"
+  elif [ "$flag_arch" == "armv8.4-a" ] ; then
+    extraargs="$extraargs -C cpu.has_arm_v8-4=1"
+  elif [ "$flag_arch" == "armv8.5-a" ] ; then
+    extraargs="$extraargs -C cpu.has_arm_v8-5=1"
+  elif [ "$flag_arch" == "armv8.6-a" ] ; then
+    extraargs="$extraargs -C cpu.has_arm_v8-6=1"
+  elif [ -n "$flag_arch" ] ; then
+    printf "warning: --arch is ignored for the validation model.\n"
+  fi
+
+  if [ "$flag_bigendian" -eq 1 ]; then
+    case $flag_iset in
+    a32 | t32)
+      if [ "$flag_be8" -eq 0 ]; then
+        printf "error: cannot execute be32 binary.\n" >&2
+        exit 4
+      fi
+      ;;
+    esac
+  fi
+
+  if [ -n "${flag_tarmac:-}" ]; then
+    extraargs="$extraargs -t -C TRACE.tarmac.trace-file=$flag_tarmac"
+  fi
+
+  if [ -n "${flag_netiface:-}" ]; then
+    printf "error: --iface incompatible with validation model\n" >&2
+    exit 3
+  fi
+
+  if [ -n "${flag_mac:-}" ]
+  then
+    printf "error: --mac incompatible with validation model\n" >&2
+    exit 3
+  fi
+
+  if ((flag_sve)); then
+    extraargs="$extraargs --plugin $(check_plugin ScalableVectorExtension) --full-features"
+  fi
+
+  # Put in place a signal handler to capture 'shutdown' signals and
+  # propagate them directly and aggressively to the model.
+  model_pid=
+  trap_with_arg shutdown_model sigint sigterm
+
+  "$mb" -q $extraargs \
+      -C TRACE.ArchMsg.suppress_sources="*.tlb_contents_unknown *.cache_contents_unknown" \
+      -C cpu.cpu0.CFGEND="$flag_bigendian" \
+      -C cpu.cpu0.CONFIG64="$(match "$flag_iset" "a64" )" \
+      -C cpu.cpu0.TEINIT="$(match "$flag_iset" "t32" )" \
+      -C cpu.NUM_CORES=1 \
+      -C cpu.dcache-state_modelled=$flag_cache \
+      -C cpu.icache-state_modelled=$flag_cache \
+      -C cpu.cpu0.DCZID-log2-block-size=$flag_dczid \
+      -C cpu.cpu0.semihosting-enable=$flag_semi \
+      -C cpu.cpu0.semihosting-cmd_line="$*" \
+      "$1" &
+  model_pid=$!
+  debug "model started: pid=$model_pid"
+  if wait $model_pid; then
+    rc=$?
+  else
+    rc=$?
+  fi
+  debug "model finished: pid=$model_pid rc=$rc"
+  exit $rc
+  ;;
+
+mps2)
+  cpu="cpu0"
+  case $flag_arch in
+  armv6-m)
+    # See infocenter.arm.com Application Note 382 (DAI0382C) Section 3.1
+    stack_base=0x21FFFFF0
+    stack_limit=0x21BFFF00
+    heap_base=0x00000000
+    heap_limit=0x21BFFF00
+    cpu="armcortexm0ct"
+    ;;
+  armv6s-m)
+    # See infocenter.arm.com Application Note 383 (DAI0383C) Section 3.1
+    stack_base=0x21FFFFF0
+    stack_limit=0x21BFFF00
+    heap_base=0x00000000
+    heap_limit=0x21BFFF00
+    cpu="armcortexm0plusct"
+    ;;
+  armv7*-m)
+    # See infocenter.arm.com Application Note 400 (DAI0400C) Section 3.1
+    # PSRAM [0x60000000 - 0x60FFFFFF]
+    stack_base=0x60FFFFF0
+    stack_limit=0x60BFFFF0
+    heap_base=0x60900000
+    heap_limit=0x60BFFFF0
+    cpu="armcortexm7ct"
+    ;;
+  armv8-m.main)
+#   See the MPS2 System Specification for ARMv8-M for the memory map, these
+#   values are based on that.
+#   ZBTSRAM:  [0x00000000 - 0x003FFFFF] (used for init vector and stack)
+#   PSRAM:    [0x21000000-0x21FFFFFF] (used for code and heap)
+#   Note that both of these are specified as Non Secure regions by the IDAU.
+#   Both secure and nonsecure VTOR starts at 0x0 by default.
+#   See: http://teamsites.arm.com/sites/atg/ATGArchitecture/ATGSpecifications/ARMv8M/Implementation/ARMv8-M%20MPS2%20System%20Specification.docx
+    stack_base=0x21FFFFF0
+    stack_limit=0x21BFFF00
+    heap_base=0x00000000
+    heap_limit=0x21BFFF00
+    cpu="cpu0"
+    extraargs="-C ${cpu}.baseline=0"
+    ;;
+  armv8.1-m.main)
+    stack_base=0x21FFFFF0
+    stack_limit=0x21BFFF00
+    heap_base=0x00000000
+    heap_limit=0x21BFFF00
+    cpu="cpu0"
+    extraargs="-C ${cpu}.baseline=0 -C cpu1.baseline=0 -C cpu0.enable_helium_extension=1 -C cpu0.ID_ISAR5.PACBTI=2"
+    ;;
+  armv8-m.base)
+    stack_base=0x21FFFFF0
+    stack_limit=0x21BFFF00
+    heap_base=0x00000000
+    heap_limit=0x21BFFF00
+    cpu="cpu0"
+    extraargs="-C ${cpu}.baseline=1"
+    ;;
+  *)
+    printf "error: --arch is not supported for the mps2 model.\n"
+    exit 3
+    ;;
+  esac
+
+  if [ "$flag_bigendian" -eq 1 ]; then
+    printf "Warning: --bigendian is not tested with %s model\n" "$flag_model" >&2
+    extraargs="$extraargs -C ${cpu}.AIRCR.ENDIANNESS=1"
+  fi
+
+  if [ -n "${flag_netiface:-}" ]; then
+    printf "error: --iface incompatible with %s model\n" "$flag_model" >&2
+    exit 3
+  fi
+
+  if [ -n "${flag_mac:-}" ]
+  then
+    printf "error: --mac incompatible with %s model\n" "$flag_model" >&2
+    exit 3
+  fi
+
+  if [ -n "${flag_tarmac:-}" ]; then
+    case $flag_arch in
+    armv8*)
+      extraargs="$extraargs --plugin $(check_plugin TarmacTrace) -C TRACE.TarmacTrace.trace-file=$flag_tarmac"
+      ;;
+    *)
+      printf "error: Tarmac Trace not supported yet for non ARMv8-M MPS2 models."
+      exit 3
+      ;;
+    esac
+  fi
+
+  # We disable the secure_control_register_block as this is part of Phase 2 of
+  # the MPS2 system specs and we haven't got it to work with Phase 2 yet.
+  # The option has changed names in the past, so we do some magic to get it
+  # from the installed model and cache it in disable_gating.cmd
+  disable_gating_file="$mb_folder/disable_gating.cmd"
+  if [ ! -f "$disable_gating_file" ]; then
+    # Request the command list from the model by passing it the -l option, then
+    # grep for DISABLE_GATING, both versions contain it in their option name.
+    # If we cant find it then exit with a diagnostic.  If we do find it, cache
+    # it in a file, to skip this step if we run the model more than once.
+    "$mb" -l > "$tmpdir/options"
+    if ! grep -o "^.*DISABLE_GATING" "$tmpdir/options" > "$tmpdir/flag"; then
+      printf "error: DISABLE_GATING option not found\n" >&2
+      exit 7
+    fi
+      mv "$tmpdir/flag" "$disable_gating_file"
+  fi
+  disable_gating=$(cat "$disable_gating_file")
+
+  # If running armv8-m.main, check whether this model has the
+  # vfp-enable_at_reset option and if so enable it by default.  The existance
+  # of the option is cached per model.
+  if [[ ("$flag_arch" == "armv8-m.main") ]] || [[ ("$flag_arch" == "armv8.1-m.main") ]];
+  then
+    vfp_enable_file="$mb_folder/vfp_enable.cmd"
+    if [ ! -f "$vfp_enable_file" ]; then
+      "$mb" -l > "$tmpdir/options"
+      if grep -o "${cpu}.vfp-enable_at_reset" "$tmpdir/options" > "$tmpdir/flag"; then
+	echo "-C $(cat "$tmpdir/flag")=1" > "$vfp_enable_file"
+      else
+	echo "" > "$vfp_enable_file"
+      fi
+    fi
+    vfp_enable_at_reset=$(cat "$vfp_enable_file")
+    extraargs="$extraargs $vfp_enable_at_reset"
+  fi
+
+  extraargs="$extraargs -C fvp_mps2.telnetterminal0.quiet=1"
+  extraargs="$extraargs -C fvp_mps2.telnetterminal1.quiet=1"
+  extraargs="$extraargs -C fvp_mps2.telnetterminal2.quiet=1"
+
+  "$mb" $extraargs \
+      -C fvp_mps2.mps2_visualisation.disable-visualisation=1 \
+      -C ${cpu}.semihosting-stack_base="$stack_base" \
+      -C ${cpu}.semihosting-stack_limit="$stack_limit" \
+      -C ${cpu}.semihosting-heap_base="$heap_base" \
+      -C ${cpu}.semihosting-heap_limit="$heap_limit" \
+      -C "$disable_gating"=1 \
+      -a ${cpu}="$1"
+  ;;
+
+*)
+  printf "error: oops\n" >&2
+  exit 4
+esac

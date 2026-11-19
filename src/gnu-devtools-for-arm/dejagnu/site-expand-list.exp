@@ -1,0 +1,106 @@
+#
+# site.exp -- Site-specific configuration file for A/R/M toolchain builds of
+#	      GNU Tools.
+
+case "$target_triplet" in {
+  { "arm*-*-eabi*" "arm*-*-elf*" } {
+    if [ info exists tool ] {
+      switch "$tool" {
+        binutils -
+        ld -
+        gas {
+          # Binutils, ld, and gas take full control over their build
+          # environment and test all interesting combinations, so only
+          # need to run once.
+          set target_list $arm_binutils_list
+        }
+        gdb {
+          # GDB should only be run using QEMU - and we can get away
+          # with running it once
+          set target_list $arm_gdb_list
+        }
+        libstdc++ -
+        libgfortran -
+        newlib -
+        libgloss {
+          # The dejagnu implementation of target_compile
+          # provided in the systems install of dejagnu
+          # (probably /usr/share/dejagnu/target.exp, will
+          # use the TCL global variable CFLAGS_FOR_TARGET,
+          # it will not look into the environment variable
+          # with the same name.  The multilib foo in
+          # toplevel binutils and gcc actually pass the
+          # environment variable CFLAGS.  Therefore we need
+          # to ensure that TCL global CFLAGS_FOR_TARGET is
+          # initialized from environment variable CFLAGS.
+          global CFLAGS_FOR_TARGET
+          if [ info exists env(CFLAGS) ] {
+            set CFLAGS_FOR_TARGET $env(CFLAGS)
+          } else {
+            set CFLAGS_FOR_TARGET ""
+          }
+          set target_list $standard_arm_eabi_target_libs_list
+        }
+        default {
+          set target_list $standard_arm_eabi_target_list
+        }
+      }
+    } else {
+      set target_list $standard_arm_eabi_target_list
+    }
+  }
+  { "arm*-*-linux-gnueabi*" } {
+    set target_list $standard_arm_lnx_target_list
+  }
+
+  { "aarch64*-*-elf" } {
+    if [ info exists tool ] {
+      switch "$tool" {
+        binutils -
+        ld -
+        gas {
+          # Binutils, ld, and gas take full control over their build
+          # environment and test all interesting combinations, so only
+          # need to run fewer times.
+          set target_list $aarch64_binutils_list
+        }
+        gdb {
+          # GDB should only be run using QEMU - and we can get away
+          # with running it once
+          set target_list $aarch64_gdb_list
+        }
+        libstdc++ -
+        libgfortran -
+        newlib -
+        libgloss {
+          # The dejagnu implementation of target_compile
+          # provided in the systems install of dejagnu
+          # (probably /usr/share/dejagnu/target.exp, will
+          # use the TCL global variable CFLAGS_FOR_TARGET,
+          # it will not look into the environment variable
+          # with the same name.  The multilib foo in
+          # toplevel binutils and gcc actually pass the
+          # environment variable CFLAGS.  Therefore we need
+          # to ensure that TCL global CFLAGS_FOR_TARGET is
+          # initialized from environment variable CFLAGS.
+          global CFLAGS_FOR_TARGET
+          if [ info exists env(CFLAGS) ] {
+            set CFLAGS_FOR_TARGET $env(CFLAGS)
+          } else {
+            set CFLAGS_FOR_TARGET ""
+          }
+          set target_list $standard_aarch64_elf_target_libs_list
+        }
+        default {
+          set target_list $standard_aarch64_elf_target_list
+        }
+      }
+    } else {
+      set target_list $standard_aarch64_elf_target_list
+    }
+  }
+
+  { "aarch64*-*-linux*" } {
+    set target_list $standard_aarch64_lnx_target_list
+  }
+}
